@@ -8,7 +8,7 @@ import cors from 'cors';
 const app = express();
 const server = createServer(app);
 const io = new Server(server);
-const port = 3000
+const port = process.env.PORT || 4000;
 
 let onlineUsers = new Map();
 
