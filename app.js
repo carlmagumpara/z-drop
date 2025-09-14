@@ -10,9 +10,13 @@ const server = createServer(app);
 const io = new Server(server);
 const port = process.env.PORT || 4000;
 
+const corsOptions = {
+  origin: ['http://localhost:5173']
+};
+
 let onlineUsers = new Map();
 
-app.use(cors());
+app.use(cors(corsOptions));
 
 app.get('/', (req, res) => {
   res.send('Hello World!')
