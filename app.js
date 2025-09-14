@@ -38,20 +38,21 @@ io.on('connection', (socket) => {
     io.emit("update_users", Array.from(onlineUsers.keys()));
   });
 
-  socket.on("join-room", (roomName) => {
-    socket.join(roomName);
-    console.log(`${socket.id} joined room: ${roomName}`);
-    
-    socket.to(roomName).emit("message", `${socket.id} joined the room`);
+  socket.on("join-room", ({ roomId, username }) => {
+    socket.join(roomId);
+    console.log(`${username} joined room: ${roomId}`);
+    socket.to(roomId).emit("message", `${username} joined the room`);
   });
 
-  socket.on("on-message", ({ roomName, message }) => {
-    io.to(roomName).emit("message", message);
+  socket.on("on-message", ({ roomId, username, message }) => {
+    io.to(roomId).emit("message", message);
   });
 
-  socket.on("leave-room", (roomName) => {
-    socket.leave(roomName);
-    console.log(`${socket.id} left room: ${roomName}`);
+  socket.on("leave-room", ({ roomId, username }) => {
+    socket.leave(roomId);
+    console.log(`${username} left room: ${roomId}`);
+
+    socket.to(roomId).emit("message", `${username} left the room`);
   });
 
   socket.on("disconnect", () => {
