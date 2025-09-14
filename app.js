@@ -10,13 +10,13 @@ const server = createServer(app);
 const io = new Server(server);
 const port = process.env.PORT || 4000;
 
-const corsOptions = {
-  origin: ['http://localhost:5173']
-};
-
 let onlineUsers = new Map();
 
-app.use(cors(corsOptions));
+app.use(cors({
+  origin: "http://localhost:5173",
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  credentials: true
+}));
 
 app.get('/', (req, res) => {
   res.send('Hello World!')
@@ -52,4 +52,4 @@ io.on('connection', (socket) => {
 
 server.listen(port, () => {
   console.log(`Example app listening on port ${port}`)
-})
+});
