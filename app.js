@@ -42,12 +42,11 @@ io.on('connection', (socket) => {
     socket.join(roomName);
     console.log(`${socket.id} joined room: ${roomName}`);
     
-    // notify other members
     socket.to(roomName).emit("message", `${socket.id} joined the room`);
   });
 
   socket.on("on-message", ({ roomName, message }) => {
-    io.to(roomName).emit("message", `${socket.id}: ${message}`);
+    io.to(roomName).emit("message", message);
   });
 
   socket.on("leave-room", (roomName) => {
