@@ -41,7 +41,7 @@ io.on('connection', (socket) => {
   socket.on("join-room", ({ roomId, username }) => {
     socket.join(roomId);
     console.log(`${username} joined room: ${roomId}`);
-    socket.to(roomId).emit("message", `${username} joined the room`);
+    socket.to(roomId).emit("joined", username);
   });
 
   socket.on("on-message", ({ roomId, username, message }) => {
@@ -51,8 +51,7 @@ io.on('connection', (socket) => {
   socket.on("leave-room", ({ roomId, username }) => {
     socket.leave(roomId);
     console.log(`${username} left room: ${roomId}`);
-
-    socket.to(roomId).emit("message", `${username} left the room`);
+    socket.to(roomId).emit("left", username);
   });
 
   socket.on("disconnect", () => {
