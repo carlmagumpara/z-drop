@@ -26,11 +26,11 @@ app.use(cors({
 }));
 
 app.get('/', (req, res) => {
-  res.send('Hello World!')
-})
+  res.send('Server is working!');
+});
 
 io.on('connection', (socket) => {
-  console.log('a user connected');
+  console.log("User connected:", socket.id);
 
   socket.on("user_online", (userId) => {
     onlineUsers.set(userId, socket.id);
@@ -39,6 +39,8 @@ io.on('connection', (socket) => {
   });
 
   socket.on("disconnect", () => {
+    console.log('a user disconnect');
+
     let userId = null;
 
     // Hanapin kung aling user ang naka-bind sa socket
