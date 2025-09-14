@@ -3,6 +3,7 @@ import { createServer } from 'node:http';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { Server } from 'socket.io';
+import cors from 'cors';
 
 const app = express();
 const server = createServer(app);
@@ -10,6 +11,8 @@ const io = new Server(server);
 const port = 3000
 
 let onlineUsers = new Map();
+
+app.use(cors());
 
 app.get('/', (req, res) => {
   res.send('Hello World!')
