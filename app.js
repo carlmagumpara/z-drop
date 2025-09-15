@@ -35,6 +35,18 @@ app.get('/', (req, res) => {
 io.on('connection', (socket) => {
   console.log("User connected:", socket.id);
 
+  socket.on("signal", ({ to, sdp, candidate }) => {
+    socket.to(to).emit("signal", {
+      from: socket.id,
+      sdp: sdp,
+      candidate: candidate
+    });
+  });
+
+  socket.on("join", () => {
+    socket.broadcast.emit("new-peer", socket.id);
+  });
+
   socket.on("user_online", (userId) => {
     onlineUsers.set(userId, socket.id);
     console.log(`${userId} is online`);
