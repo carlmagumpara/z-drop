@@ -43,30 +43,31 @@ io.on('connection', (socket) => {
     });
   });
 
-  socket.on("join", () => {
-    socket.broadcast.emit("new-peer", socket.id);
-  });
-
-  socket.on("user_online", (userId) => {
-    onlineUsers.set(userId, socket.id);
-    console.log(`${userId} is online`);
-    io.emit("update_users", Array.from(onlineUsers.keys()));
-  });
+  // socket.on("join", ({ roomId }) => {
+  //   socket.broadcast.to(roomId).emit("new-peer", socket.id);
+  // });
 
   socket.on("join-room", ({ roomId, username }) => {
     socket.join(roomId);
     console.log(`${username} joined room: ${roomId}`);
     socket.to(roomId).emit("joined", username);
-  });
-
-  socket.on("on-message", ({ roomId, username, message }) => {
-    io.to(roomId).emit("message", message);
+    socket.broadcast.to(roomId).emit("new-peer", socket.id);
   });
 
   socket.on("leave-room", ({ roomId, username }) => {
     socket.leave(roomId);
     console.log(`${username} left room: ${roomId}`);
     socket.to(roomId).emit("left", username);
+  });
+
+  socket.on("on-message", ({ roomId, username, message }) => {
+    io.to(roomId).emit("message", message);
+  });
+
+  socket.on("user_online", (userId) => {
+    onlineUsers.set(userId, socket.id);
+    console.log(`${userId} is online`);
+    io.emit("update_users", Array.from(onlineUsers.keys()));
   });
 
   socket.on("disconnect", () => {
