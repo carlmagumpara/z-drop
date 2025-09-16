@@ -50,8 +50,7 @@ io.on('connection', (socket) => {
   socket.on("join-room", ({ roomId, username }) => {
     socket.join(roomId);
     console.log(`${username} joined room: ${roomId}`);
-    socket.to(roomId).emit("joined", username);
-    socket.broadcast.to(roomId).emit("new-peer", socket.id);
+    socket.to(roomId).emit("joined", [username, socket.id]);
   });
 
   socket.on("leave-room", ({ roomId, username }) => {
