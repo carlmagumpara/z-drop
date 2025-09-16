@@ -52,8 +52,22 @@ io.on('connection', (socket) => {
     console.log(`${username} joined room: ${roomId}`);
     socket.to(roomId).emit("joined", [username, socket.id]);
 
+    // I-save ang username sa socket data
+    socket.data.username = username;
+
+    // Kunin lahat ng sockets sa room
     const clients = io.sockets.adapter.rooms.get(roomId);
-    io.to(roomId).emit("users", clients);
+    const users = [];
+
+    if (clients) {
+      for (const clientId of clients) {
+        const clientSocket = io.sockets.sockets.get(clientId);
+        users.push(clientSocket.data.username);
+      }
+    }
+
+    // I-broadcast list ng users sa room
+    io.to(roomId).emit("room-users", users);
   });
 
   socket.on("leave-room", ({ roomId, username }) => {
