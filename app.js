@@ -62,7 +62,7 @@ io.on('connection', (socket) => {
     if (clients) {
       for (const clientId of clients) {
         const clientSocket = io.sockets.sockets.get(clientId);
-        users.push(clientSocket.data.username);
+        users.push([clientSocket.data.username, clientId]);
       }
     }
 
