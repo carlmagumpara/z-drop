@@ -51,6 +51,9 @@ io.on('connection', (socket) => {
     socket.join(roomId);
     console.log(`${username} joined room: ${roomId}`);
     socket.to(roomId).emit("joined", [username, socket.id]);
+
+    const clients = io.sockets.adapter.rooms.get(roomId);
+    io.to(roomId).emit("users", clients);
   });
 
   socket.on("leave-room", ({ roomId, username }) => {
