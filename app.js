@@ -35,17 +35,17 @@ app.get('/', (req, res) => {
 io.on('connection', (socket) => {
   console.log("User connected:", socket.id);
 
-  socket.on("signal", ({ to, sdp, candidate }) => {
-    socket.to(to).emit("signal", {
-      from: socket.id,
-      sdp: sdp,
-      candidate: candidate
-    });
+  socket.on("offer", (data) => {
+    socket.to(data.to).emit("offer", { from: socket.id, sdp: data.sdp });
   });
 
-  // socket.on("join", ({ roomId }) => {
-  //   socket.broadcast.to(roomId).emit("new-peer", socket.id);
-  // });
+  socket.on("answer", (data) => {
+    socket.to(data.to).emit("answer", { from: socket.id, sdp: data.sdp });
+  });
+
+  socket.on("ice-candidate", (data) => {
+    socket.to(data.to).emit("ice-candidate", { from: socket.id, candidate: data.candidate });
+  });
 
   socket.on("join-room", ({ roomId, username }) => {
     socket.join(roomId);
