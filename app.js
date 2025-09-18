@@ -27,35 +27,40 @@ app.use(cors({
 
 app.get('/', (req, res) => {
   res.send({
-    online_now: onlineUsers,
     message: 'Server is working!'
   });
 });
 
 io.on('connection', (socket) => {
+
   console.log("User connected:", socket.id);
 
   socket.on("offer", (data) => {
-    socket.to(data.to).emit("offer", { from: socket.id, sdp: data.sdp });
+    socket.to(data.to).emit("offer", { 
+      from: socket.id, 
+      sdp: data.sdp 
+    });
   });
 
   socket.on("answer", (data) => {
-    socket.to(data.to).emit("answer", { from: socket.id, sdp: data.sdp });
+    socket.to(data.to).emit("answer", { 
+      from: socket.id, 
+      sdp: data.sdp 
+    });
   });
 
   socket.on("ice-candidate", (data) => {
-    socket.to(data.to).emit("ice-candidate", { from: socket.id, candidate: data.candidate });
+    socket.to(data.to).emit("ice-candidate", { 
+      from: socket.id, 
+      candidate: data.candidate 
+    });
   });
 
   socket.on("join-room", ({ roomId, username }) => {
     socket.join(roomId);
     console.log(`${username} joined room: ${roomId}`);
     socket.to(roomId).emit("joined", [username, socket.id]);
-
-    // I-save ang username sa socket data
     socket.data.username = username;
-
-    // Kunin lahat ng sockets sa room
     const clients = io.sockets.adapter.rooms.get(roomId);
     const users = [];
 
@@ -66,7 +71,6 @@ io.on('connection', (socket) => {
       }
     }
 
-    // I-broadcast list ng users sa room
     io.to(roomId).emit("room-users", users);
   });
 
@@ -77,7 +81,11 @@ io.on('connection', (socket) => {
   });
 
   socket.on("on-message", ({ roomId, username, message }) => {
-    io.to(roomId).emit("message", message);
+    io.to(roomId).emit("message", {
+      username,
+      message,
+      dateTime: new Date()
+    });
   });
 
   socket.on("user_online", (userId) => {
