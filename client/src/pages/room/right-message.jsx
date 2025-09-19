@@ -34,6 +34,7 @@ function RightMessage({ item }) {
           <div className="d-flex justify-content-start align-items gap-1">
             <span className="small">✓</span> {item.readBy.map(reader => (
               <Avatar
+                key={reader}
                 name={reader}
                 size={15}
                 variant="beam"

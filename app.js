@@ -83,7 +83,7 @@ io.on('connection', (socket) => {
     }
 
     io.to(roomId).emit("room-users", users);
-    socket.to(roomId).emit("chat-history", messages.map((m) => JSON.parse(m)));
+    socket.emit("chat-history", messages.map((m) => JSON.parse(m)));
   });
 
   socket.on("leave-room", ({ roomId, username }) => {

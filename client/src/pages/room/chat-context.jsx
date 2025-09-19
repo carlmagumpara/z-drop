@@ -5,19 +5,9 @@ const Context = createContext();
 export const useChat = () => useContext(Context);
 
 function ChatProvider({ children }) {
-  const [messages, setMessages] = useState(() => {
-    const saved = localStorage.getItem('messages');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [messages, setMessages] = useState([]);
   const [unread, setUnread] = useState(0);
   const [typing, setTyping] = useState([]);
-
-  useEffect(() => {
-    localStorage.setItem(
-      'messages', 
-      JSON.stringify(messages)
-    );
-  }, [messages]);
 
   return (
     <Context.Provider
