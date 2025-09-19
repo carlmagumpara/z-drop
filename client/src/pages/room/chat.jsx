@@ -10,13 +10,16 @@ import EmojiPicker from 'emoji-picker-react';
 import { socket } from '../../socket';
 import { usePresence } from '@/contexts/presence';
 import { useChat } from './chat-context';
-import { popSfx, bubbleSfx } from './sounds';
+import { popSfx, bubbleSfx, messageSfx } from './sounds';
 import useSound from '@/hooks/use-sound';
 import { v4 as uuidv4 } from 'uuid';
+import RightMessage from './right-message';
+import LeftMessage from './left-message';
 
 function Chat({ roomId = '', visibility }) {
   const [playPopSfx] = useSound(popSfx);
   const [playBubbleSfx] = useSound(bubbleSfx);
+  const [playMessageSfx] = useSound(messageSfx);
   const { username } = usePresence();
   const { messages, setMessages, typing, setTyping, setUnread } = useChat();
   const [cursorPosition, setCursorPosition] = useState(0);
@@ -47,6 +50,8 @@ function Chat({ roomId = '', visibility }) {
             if(!visibility) {
               setUnread(prevState => prevState + 1);
             }
+          } else {
+            playMessageSfx();
           }
           break;
         case 'typing':
@@ -74,6 +79,22 @@ function Chat({ roomId = '', visibility }) {
             }, 1000);
           }
           break;
+        case 'read':
+          setMessages(prevState => prevState.map(item => item.id === data.data.message_id ? {
+            ...item,
+            readBy: [
+              ...item.readBy, 
+              data.data.username
+            ]
+          } : item))
+          break;
+        case 'all-messages':
+          setMessages(prevState => [
+              ...prevState, 
+              ...data.data
+            ].filter((obj, index, self) => index === self.findIndex(o => o.id === obj.id))
+          );
+          break;
         default:
           console.log('invalid type');
       }
@@ -83,15 +104,6 @@ function Chat({ roomId = '', visibility }) {
       socket.off("message");
     };
   }, [visibility]);
-
-  const formatTime = (date) => {
-    const diffInSeconds = moment().diff(moment(date), "seconds");
-    if (diffInSeconds < 5) {
-      return "just now";
-    }
-
-    return moment(date).fromNow();
-  };
 
   const formatTyping = (users = []) => {
     if (users.length === 0) {
@@ -117,6 +129,7 @@ function Chat({ roomId = '', visibility }) {
         ...values,
         id: uuidv4(),
         username,
+        readBy: [],
         system: false,
         dateTime: new Date()
       },      
@@ -183,37 +196,15 @@ function Chat({ roomId = '', visibility }) {
                     {item.system ? <p className="small text-center text-secondary mb-0">{item.message}</p> : (
                       <>
                         {item.username === username ? (
-                          <div className="message right">
-                            <div className="avatar" aria-hidden="true">
-                              <Avatar
-                                name={item.username}
-                                size={44}
-                                variant="beam"
-                              />
-                            </div>
-                            <div>
-                              <div className="bubble">
-                                {item.message}
-                              </div>
-                              <div className="meta right">{`${item.username} · ${formatTime(item.dateTime)}`}</div>
-                            </div>
-                          </div>
+                          <RightMessage 
+                            item={item}
+                            roomId={roomId}
+                          />
                         ) : (
-                          <div className="message left">
-                            <div className="avatar" aria-hidden="true">
-                              <Avatar
-                                name={item.username}
-                                size={44}
-                                variant="beam"
-                              />
-                            </div>
-                            <div>
-                              <div className="bubble">
-                                {item.message}
-                              </div>
-                              <div className="meta left">{`${item.username} · ${formatTime(item.dateTime)}`}</div>
-                            </div>
-                          </div>
+                          <LeftMessage 
+                            item={item}
+                            roomId={roomId}
+                          />
                         )}
                       </>
                     )}
@@ -244,6 +235,8 @@ function Chat({ roomId = '', visibility }) {
                   name="message"
                   placeholder="Enter your message here..."
                   className="rounded-0 border-0"
+                  autoComplete="off"
+                  spellCheck="false"
                   value={values.message}
                   onChange={event => {
                     socket.emit("on-message", {

@@ -25,7 +25,7 @@ function Room() {
   const { handleShow } = useGlobalModal();
   const messageApi = useMessage();
   const { username } = usePresence();
-  const { unread } = useChat();
+  const { unread, messages } = useChat();
   const [users, setUsers] = useState([]);
   const [receiving, setReceiving] = useState([]);
   const [sending, setSending] = useState([]);
@@ -292,8 +292,12 @@ function Room() {
   useEffect(() => {
     socket.on("joined", (user) => {
       if(user[0] !== username) {
-        playPopSfx();
         messageApi.info(`${user[0]} joined the room`);
+        socket.emit("on-message", {
+          roomId,
+          type: 'all-messages',
+          data: messages,      
+        });
       }
       socket.emit("on-message", {
         roomId,
@@ -303,7 +307,7 @@ function Room() {
           system: true,
           message: `${user[0]} joined the room`,
         },      
-      });      
+      });
     });
 
     socket.on("left", (username) => {
@@ -315,6 +319,7 @@ function Room() {
         roomId,
         type: 'message',
         data: {
+          id: uuidv4(),
           system: true,
           message: `${username} left the room`,
         },      
@@ -330,7 +335,7 @@ function Room() {
       socket.off("left");
       socket.off("room-users");
     };
-  }, [username]);
+  }, [username, messages]);
 
   return (
     <div className="radar-container">
