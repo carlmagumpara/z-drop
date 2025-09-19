@@ -14,10 +14,12 @@ import { useGlobalModal, MODAL_TYPES } from '@/contexts/global-modal';
 import { whoopSfx, popSfx, messageNotificationSfx } from './sounds';
 import useSound from '@/hooks/use-sound';
 import ChatProvider, { useChat } from './chat-context';
+import { iceConfig } from './config';
+
 import FileList from './file-list';
 import CustomToast from './toast';
 import Chat from './chat';
-import { iceConfig } from './config';
+
 
 function Room() {
   const { roomId } = useParams();

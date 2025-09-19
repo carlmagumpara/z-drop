@@ -1,7 +1,11 @@
+import { useEffect, useState } from 'react';
 import Avatar from 'boring-avatars';
 import moment from 'moment';
+import Picker from 'emoji-picker-react';
+import { socket } from '../../socket';
 
 function RightMessage({ item }) {
+  const [hover, setHover] = useState(false);
 
   const truncate = (str, n = 10) => str.length > n ? str.slice(0, n) + "..." : str;
 
@@ -15,7 +19,7 @@ function RightMessage({ item }) {
   };
 
   return (
-    <div className="message right">
+    <div className="message right position-relative">
       <div className="avatar" aria-hidden="true">
         <Avatar
           name={item.username}
@@ -24,7 +28,29 @@ function RightMessage({ item }) {
         />
       </div>
       <div>
-        <div className="bubble">
+        {hover ? (
+          <div
+            onMouseOver={() => setHover(true)}
+            onMouseOut={() => setHover(false)}
+            className="position-absolute"
+            style={{
+              top: -50,
+              right: 0,
+              zIndex: 999
+            }}
+          >
+            <Picker 
+              reactionsDefaultOpen={true}
+              allowExpandReactions={false}
+              onReactionClick={() => {}} 
+            />
+          </div>
+        ) : null}
+        <div 
+          className="bubble"
+          onMouseOver={() => setHover(true)}
+          onMouseOut={() => setHover(false)}
+        >
           {item.message}
         </div>
         <div className="meta right">

@@ -1,5 +1,5 @@
 import '../../chat.scss';
-import { useEffect, useState, useRef } from 'react';
+import { Fragment, useEffect, useState, useRef } from 'react';
 import { Form, InputGroup, Button, OverlayTrigger, Popover } from 'react-bootstrap';
 import Avatar from 'boring-avatars';
 import moment from 'moment';
@@ -13,6 +13,7 @@ import { useChat } from './chat-context';
 import { popSfx, bubbleSfx, messageSfx } from './sounds';
 import useSound from '@/hooks/use-sound';
 import { v4 as uuidv4 } from 'uuid';
+
 import RightMessage from './right-message';
 import LeftMessage from './left-message';
 
@@ -114,13 +115,33 @@ function Chat({ roomId = '', visibility }) {
             ]
           } : item));
           break;
+        case 'react':
+          setMessages(prevState =>
+            prevState.map(item => {
+              if (item.id !== data.data.message_id) return item;
+
+              const reactions = item.reactions ?? [];
+              const username = data.data.username;
+              const emoji = data.data.emoji;
+
+              const updatedReactions = reactions.map(r =>
+                r[0] === username ? [username, emoji] : r
+              );
+
+              if (!reactions.some(r => r[0] === username)) {
+                updatedReactions.push([username, emoji]);
+              }
+
+              return { ...item, reactions: updatedReactions };
+            })
+          );
+          break;
         default:
           console.log('invalid type');
       }
     });
 
     socket.on("chat-history", (data) => {
-      console.log('chat-history', data);
       setMessages(data);
     });
 
@@ -155,6 +176,7 @@ function Chat({ roomId = '', visibility }) {
         id: uuidv4(),
         username,
         readBy: [],
+        reactions: [],
         system: false,
         dateTime: new Date()
       },      
@@ -217,7 +239,7 @@ function Chat({ roomId = '', visibility }) {
             <div className="flex-grow-1 chat-window overflow-y-auto">
               <div className="messages p-3">
                 {computeShowReaders(messages).map(item => (
-                  <>
+                  <Fragment key={item.id}>
                     {item.system ? <p className="small text-center text-secondary mb-0">{item.message}</p> : (
                       <>
                         {item.username === username ? (
@@ -233,7 +255,7 @@ function Chat({ roomId = '', visibility }) {
                         )}
                       </>
                     )}
-                  </>
+                  </Fragment>
                 ))}
                 <div ref={bottomRef} />
               </div>
@@ -248,13 +270,6 @@ function Chat({ roomId = '', visibility }) {
                 </p>
               ) : null}
               <InputGroup>
-                <Button
-                  variant="light"
-                  className="rounded-0"
-                  onClick={() => setEmoji(!emoji)}
-                >
-                  😃
-                </Button>
                 <Form.Control
                   ref={inputRef}
                   name="message"
@@ -277,6 +292,13 @@ function Chat({ roomId = '', visibility }) {
                   onBlur={handleBlur}
                   onSelect={event => setCursorPosition(event.target.selectionEnd)}
                 />
+                <Button
+                  variant="light"
+                  className="rounded-0"
+                  onClick={() => setEmoji(!emoji)}
+                >
+                  😃
+                </Button>
                 <Button
                   type="submit" 
                   variant="light"

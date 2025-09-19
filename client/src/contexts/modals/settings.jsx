@@ -1,9 +1,11 @@
 import { useState } from 'react';
-import { Modal, Button, Form } from 'react-bootstrap';
+import { Modal, Button, Form, InputGroup } from 'react-bootstrap';
+import { FaRandom } from 'react-icons/fa';
 import { Formik } from 'formik';
 import * as Yup from 'yup';
 import { useGlobalModal, MODAL_TYPES } from '../global-modal';
 import { usePresence } from '@/contexts/presence';
+import { generateName } from '../../names';
 
 function Settings({ formValues = {} }) {
   const { show, handleClose } = useGlobalModal();
@@ -61,15 +63,26 @@ function Settings({ formValues = {} }) {
               <Modal.Body>
                 <Form.Group className="mb-3">
                   <Form.Label>Username</Form.Label>
-                  <Form.Control 
-                    name="username"
-                    placeholder="Username"
-                    value={values.username}
-                    onChange={handleChange}
-                    onBlur={handleBlur}
-                    className={errors.username && touched.username && 'is-invalid'}
-                  />
-                  {errors.username && touched.username && <Form.Control.Feedback type="invalid">{errors.username}</Form.Control.Feedback>}
+                  <InputGroup>
+                    <Form.Control 
+                      name="username"
+                      placeholder="Username"
+                      value={values.username}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
+                      className={errors.username && touched.username && 'is-invalid'}
+                    />
+                     {errors.username && touched.username && <Form.Control.Feedback type="invalid">{errors.username}</Form.Control.Feedback>}
+                    <Button 
+                      variant="outline-secondary"
+                      onClick={() => setFieldValue(
+                        'username', 
+                        `${generateName()}_${Math.floor(Math.random() * 1000)}`.replace(/ /g,"_")
+                      )}
+                    >
+                      <FaRandom />
+                    </Button>
+                  </InputGroup>
                 </Form.Group>
                 <Form.Group className="mb-3">
                   <Form.Check

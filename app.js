@@ -68,8 +68,6 @@ io.on('connection', (socket) => {
     socket.join(roomId);
     console.log(`${username} joined room: ${roomId}`);
     socket.to(roomId).emit("joined", [username, socket.id]);
-    // io.in(roomId).emit("joined", [username, socket.id]);
-  
     socket.data.username = username;
     const messages = await client.lRange(`chat:messages-${roomId}`, 0, -1);
     const clients = io.sockets.adapter.rooms.get(roomId);
@@ -117,6 +115,39 @@ io.on('connection', (socket) => {
           ...updated.readBy,
           data.username
         ];
+        await client.lSet(
+          `chat:messages-${roomId}`, 
+          index, 
+          JSON.stringify(updated)
+        );
+      };
+    }
+
+    if(type === 'react') {
+      const messages = await client.lRange(`chat:messages-${roomId}`, 0, -1);
+
+      const index = messages.findIndex(message=> {
+        const parsed = JSON.parse(message);
+        return parsed.id === data.message_id;
+      });
+
+      if (index !== -1) {
+        const updated = JSON.parse(messages[index]);
+
+        const reactions = updated.reactions ?? [];
+        const username = data.username;
+        const emoji = data.emoji;
+
+        const updatedReactions = reactions.map(r =>
+          r[0] === username ? [username, emoji] : r
+        );
+
+        if (!reactions.some(r => r[0] === username)) {
+          updatedReactions.push([username, emoji]);
+        }
+
+        updated.reactions = updatedReactions;
+
         await client.lSet(
           `chat:messages-${roomId}`, 
           index, 
