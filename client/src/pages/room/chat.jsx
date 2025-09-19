@@ -59,8 +59,10 @@ function Chat({ roomId = '', visibility }) {
       setUnread(0);
     }
 
-    bottomRef.current?.scrollIntoView({ behavior: "auto" });
-  }, [messages, visibility]);
+    bottomRef.current?.scrollIntoView({ 
+      behavior: "auto" 
+    });
+  }, [messages.length, visibility]);
 
   useEffect(() => {
     socket.on("message", (data) => {

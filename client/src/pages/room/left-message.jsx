@@ -5,8 +5,11 @@ import Picker from 'emoji-picker-react';
 import useOnScreen from '@/hooks/use-on-screen';
 import { usePresence } from '@/contexts/presence';
 import { socket } from '../../socket';
+import { popSfx } from './sounds';
+import useSound from '@/hooks/use-sound';
 
 function LeftMessage({ item, roomId }) {
+  const [playPopSfx] = useSound(popSfx);
   const [hover, setHover] = useState(false);
   const [ref, isVisible] = useOnScreen({
     threshold: 0.1,
@@ -75,7 +78,9 @@ function LeftMessage({ item, roomId }) {
                     emoji,
                   },
                 });
-              }} 
+                setHover(false);
+                playPopSfx();
+              }}
             />
           </div>
         ) : null}
@@ -86,7 +91,16 @@ function LeftMessage({ item, roomId }) {
         >
           {item.message}
         </div>
-        {JSON.stringify(item.reactions ?? {})}
+        {(item.reactions ?? []).length ? (
+          <div className="d-flex justify-content-end align-items gap-1 h6">
+            {(item.reactions ?? []).map(emoji => (
+              <span key={emoji[1]} className="animate__animated animate__bounceIn">
+                {emoji[1]}
+              </span>
+            ))}
+            <span className="small text-secondary">{item.reactions.length}</span>
+          </div>
+        ) : null}
         <div className="meta left">
           {`${truncate(item.username)} · ${formatTime(item.dateTime)}`}
         </div>

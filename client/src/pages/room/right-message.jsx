@@ -2,10 +2,15 @@ import { useEffect, useState } from 'react';
 import Avatar from 'boring-avatars';
 import moment from 'moment';
 import Picker from 'emoji-picker-react';
+import { usePresence } from '@/contexts/presence';
 import { socket } from '../../socket';
+import { popSfx } from './sounds';
+import useSound from '@/hooks/use-sound';
 
-function RightMessage({ item }) {
+function RightMessage({ item, roomId }) {
+  const [playPopSfx] = useSound(popSfx);
   const [hover, setHover] = useState(false);
+  const { username } = usePresence();
 
   const truncate = (str, n = 10) => str.length > n ? str.slice(0, n) + "..." : str;
 
@@ -42,7 +47,20 @@ function RightMessage({ item }) {
             <Picker 
               reactionsDefaultOpen={true}
               allowExpandReactions={false}
-              onReactionClick={() => {}} 
+              onReactionClick={emojiObject => {
+                const emoji = emojiObject.emoji;
+                socket.emit("on-message", {
+                  roomId,
+                  type: 'react',
+                  data: {
+                    message_id: item.id,
+                    username,
+                    emoji,
+                  },
+                });
+                setHover(false);
+                playPopSfx();
+              }}
             />
           </div>
         ) : null}
@@ -53,6 +71,16 @@ function RightMessage({ item }) {
         >
           {item.message}
         </div>
+        {(item.reactions ?? []).length ? (
+          <div className="d-flex justify-content-end align-items gap-1 h6">
+            {(item.reactions ?? []).map(emoji => (
+              <span key={emoji[1]} className="animate__animated animate__bounceIn">
+                {emoji[1]}
+              </span>
+            ))}
+            <span className="small text-secondary">{item.reactions.length}</span>
+          </div>
+        ) : null}
         <div className="meta right">
           {`${truncate(item.username)} · ${formatTime(item.dateTime)}`}
         </div>
