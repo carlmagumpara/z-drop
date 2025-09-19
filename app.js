@@ -103,7 +103,26 @@ io.on('connection', (socket) => {
     }
 
     if(type === 'read') {
-      
+      const messages = await client.lRange(`chat:messages-${roomId}`, 0, -1);
+
+      const index = messages.findIndex(message=> {
+        const parsed = JSON.parse(message);
+        return parsed.id === data.data.message_id;
+      });
+
+      if (index !== -1) {
+        const updated = JSON.parse(messages[index]);
+
+        updated.readBy = [
+          ...updated.readBy,
+          data.data.username
+        ];
+        await client.lSet(
+          `chat:messages-${roomId}`, 
+          index, 
+          JSON.stringify(updated)
+        );
+      };
     }
   });
 

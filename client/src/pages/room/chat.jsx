@@ -37,7 +37,11 @@ function Chat({ roomId = '', visibility }) {
       setUnread(0);
       bottomRef.current?.scrollIntoView({ behavior: "smooth" });
     }
-    
+
+    socket.on("chat-history", (data) => {
+      setMessages(data);
+    });
+
     socket.on("message", (data) => {
       switch(data.type) {
         case 'message':

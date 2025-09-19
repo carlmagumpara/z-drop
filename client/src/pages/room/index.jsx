@@ -332,10 +332,6 @@ function Room() {
       setUsers(prevState => [...new Set(message)]);
     });
 
-    socket.on("chat-history", (data) => {
-      console.log("chat-history", data);
-    });
-
     return () => {
       socket.off("joined");
       socket.off("left");
