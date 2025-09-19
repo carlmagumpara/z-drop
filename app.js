@@ -64,12 +64,14 @@ io.on('connection', (socket) => {
     });
   });
 
-  socket.on("join-room", ({ roomId, username }) => {
+  socket.on("join-room", async ({ roomId, username }) => {
     socket.join(roomId);
     console.log(`${username} joined room: ${roomId}`);
     // socket.to(roomId).emit("joined", [username, socket.id]);
     io.in(roomId).emit("joined", [username, socket.id]);
+  
     socket.data.username = username;
+    const messages = await client.lRange(`chat:messages-${roomId}`, 0, -1);
     const clients = io.sockets.adapter.rooms.get(roomId);
     const users = [];
 
@@ -81,6 +83,7 @@ io.on('connection', (socket) => {
     }
 
     io.to(roomId).emit("room-users", users);
+    socket.to(roomId).emit("chat-history", messages.map((m) => JSON.parse(m)));
   });
 
   socket.on("leave-room", ({ roomId, username }) => {

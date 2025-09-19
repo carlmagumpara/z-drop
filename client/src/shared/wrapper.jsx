@@ -7,8 +7,6 @@ import Navigation from './navigation';
 function Wrapper() {
   const { username } = usePresence();
 
-  console.log('render wrapper');
-
   if(!username) {
     return <Loading />;
   }
