@@ -17,7 +17,6 @@ import RightMessage from './right-message';
 import LeftMessage from './left-message';
 
 function computeShowReaders(messages) {
-  // object para hiwalay ang tracking per sender
   const seenPerSender = {};
 
   return messages
@@ -31,12 +30,10 @@ function computeShowReaders(messages) {
         seenPerSender[sender] = new Set();
       }
 
-      // kunin readers na hindi pa lumalabas sa sender na ito
       const readers = (msg.readBy || []).filter(
         r => !seenPerSender[sender].has(r)
       );
 
-      // mark na nakita na sila para sa sender na ito
       readers.forEach(r => seenPerSender[sender].add(r));
 
       return { ...msg, showReaders: readers };
@@ -57,15 +54,14 @@ function Chat({ roomId = '', visibility }) {
   const typingRef = useRef(null);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "auto" });
-  }, []);
-
-  useEffect(() => {
     if(visibility) {
       setUnread(0);
-      bottomRef.current?.scrollIntoView({ behavior: "auto" });
     }
+    
+    bottomRef.current?.scrollIntoView({ behavior: "auto" });
+  }, [messages, visibility]);
 
+  useEffect(() => {
     socket.on("message", (data) => {
       switch(data.type) {
         case 'message':
