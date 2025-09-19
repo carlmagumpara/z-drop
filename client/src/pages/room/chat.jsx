@@ -100,8 +100,14 @@ function Chat({ roomId = '', visibility }) {
       }
     });
 
+    socket.on("chat-history", (data) => {
+      console.log('chat-history', data);
+      setMessages(data);
+    });
+
     return () => {
       socket.off("message");
+      socket.off("chat-history");
     };
   }, [visibility]);
 

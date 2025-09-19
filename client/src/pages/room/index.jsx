@@ -320,11 +320,6 @@ function Room() {
       }); 
     });
     
-    socket.on("chat-history", (data) => {
-      console.log('chat-history', data);
-      setMessages(data);
-    });
-    
     socket.on("room-users", (message) => {
       setUsers(prevState => [...new Set(message)]);
     });
