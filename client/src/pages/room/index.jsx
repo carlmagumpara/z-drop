@@ -42,6 +42,8 @@ function Room() {
   const [playWhoopSfx] = useSound(whoopSfx);
   const [playMessageNotificationSfx] = useSound(messageNotificationSfx);
 
+  console.log('positions', positions);
+
   const size = 60;
   const maxTries = 500;
 
@@ -293,11 +295,11 @@ function Room() {
     socket.on("joined", (user) => {
       if(user[0] !== username) {
         messageApi.info(`${user[0]} joined the room`);
-        socket.emit("on-message", {
-          roomId,
-          type: 'all-messages',
-          data: messages,      
-        });
+        // socket.emit("on-message", {
+        //   roomId,
+        //   type: 'all-messages',
+        //   data: messages,      
+        // });
       }
       socket.emit("on-message", {
         roomId,

@@ -2,11 +2,19 @@ import express from 'express';
 import { createServer } from 'node:http';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { createClient } from 'redis';
 import { Server } from 'socket.io';
 import cors from 'cors';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+
+const client = createClient({ 
+  url: 'rediss://red-d361o3umcj7s73abuvmg:W9sA7l54Rhnuh3burt7TAafEaVUReEPk@oregon-keyvalue.render.com:6379' 
+});
+
+client.on('error', (err) => console.log('Redis Client Error', err));
+client.connect();
 
 const corsConfig = {
   origin: ["http://localhost:5173", "http://localhost:4000", "https://fs-client-x6so.onrender.com"],
@@ -81,11 +89,19 @@ io.on('connection', (socket) => {
     socket.to(roomId).emit("left", username);
   });
 
-  socket.on("on-message", ({ roomId, type, data }) => {
+  socket.on("on-message", async ({ roomId, type, data }) => {
     io.to(roomId).emit("message", {
       type,
       data,
     });
+
+    if(type === 'message') {
+      await client.rPush(`chat:messages-${roomId}`, JSON.stringify(data));
+    }
+
+    if(type === 'read') {
+      
+    }
   });
 
   socket.on("user_online", (userId) => {

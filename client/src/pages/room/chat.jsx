@@ -86,7 +86,7 @@ function Chat({ roomId = '', visibility }) {
               ...item.readBy, 
               data.data.username
             ]
-          } : item))
+          } : item));
           break;
         case 'all-messages':
           setMessages(prevState => [
