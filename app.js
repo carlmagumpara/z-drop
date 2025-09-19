@@ -17,7 +17,7 @@ client.on('error', (err) => console.log('Redis Client Error', err));
 client.connect();
 
 const corsConfig = {
-  origin: ["http://localhost:5173", "http://localhost:4000", "https://fs-client-x6so.onrender.com"],
+  origin: ["http://localhost:5173", "http://localhost:4000"],
   methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true,
 };
@@ -102,28 +102,28 @@ io.on('connection', (socket) => {
       await client.rPush(`chat:messages-${roomId}`, JSON.stringify(data));
     }
 
-    if(type === 'read') {
-      const messages = await client.lRange(`chat:messages-${roomId}`, 0, -1);
+    // if(type === 'read') {
+    //   const messages = await client.lRange(`chat:messages-${roomId}`, 0, -1);
 
-      const index = messages.findIndex(message=> {
-        const parsed = JSON.parse(message);
-        return parsed.id === data.data.message_id;
-      });
+    //   const index = messages.findIndex(message=> {
+    //     const parsed = JSON.parse(message);
+    //     return parsed.id === data.data.message_id;
+    //   });
 
-      if (index !== -1) {
-        const updated = JSON.parse(messages[index]);
+    //   if (index !== -1) {
+    //     const updated = JSON.parse(messages[index]);
 
-        updated.readBy = [
-          ...updated.readBy,
-          data.data.username
-        ];
-        await client.lSet(
-          `chat:messages-${roomId}`, 
-          index, 
-          JSON.stringify(updated)
-        );
-      };
-    }
+    //     updated.readBy = [
+    //       ...updated.readBy,
+    //       data.data.username
+    //     ];
+    //     await client.lSet(
+    //       `chat:messages-${roomId}`, 
+    //       index, 
+    //       JSON.stringify(updated)
+    //     );
+    //   };
+    // }
   });
 
   socket.on("user_online", (userId) => {

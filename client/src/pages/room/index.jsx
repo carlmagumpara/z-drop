@@ -42,8 +42,6 @@ function Room() {
   const [playWhoopSfx] = useSound(whoopSfx);
   const [playMessageNotificationSfx] = useSound(messageNotificationSfx);
 
-  console.log('positions', positions);
-
   const size = 60;
   const maxTries = 500;
 
@@ -233,7 +231,7 @@ function Room() {
     }
   
     socket.emit("join-room", { roomId, username });  
-    
+
     const handleBeforeUnload = (event) => socket.emit("leave-room", { roomId, username });
 
     window.addEventListener('beforeunload', handleBeforeUnload);
@@ -295,11 +293,6 @@ function Room() {
     socket.on("joined", (user) => {
       if(user[0] !== username) {
         messageApi.info(`${user[0]} joined the room`);
-        // socket.emit("on-message", {
-        //   roomId,
-        //   type: 'all-messages',
-        //   data: messages,      
-        // });
       }
       socket.emit("on-message", {
         roomId,
@@ -311,7 +304,6 @@ function Room() {
         },      
       });
     });
-
     socket.on("left", (username) => {
       playWhoopSfx();
       setUsers(prevState => prevState.filter(item => item[0] !== username));
@@ -327,7 +319,12 @@ function Room() {
         },      
       }); 
     });
-
+    
+    socket.on("chat-history", (data) => {
+      console.log('chat-history', data);
+      setMessages(data);
+    });
+    
     socket.on("room-users", (message) => {
       setUsers(prevState => [...new Set(message)]);
     });
