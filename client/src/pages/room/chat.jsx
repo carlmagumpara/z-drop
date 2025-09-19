@@ -57,13 +57,13 @@ function Chat({ roomId = '', visibility }) {
   const typingRef = useRef(null);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    bottomRef.current?.scrollIntoView({ behavior: "instant" });
+  }, []);
 
   useEffect(() => {
     if(visibility) {
       setUnread(0);
-      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+      bottomRef.current?.scrollIntoView({ behavior: "instant" });
     }
 
     socket.on("message", (data) => {
@@ -81,6 +81,8 @@ function Chat({ roomId = '', visibility }) {
           } else {
             playMessageSfx();
           }
+
+          bottomRef.current?.scrollIntoView({ behavior: "smooth" });
           break;
         case 'typing':
           if(data.data.username !== username) {
