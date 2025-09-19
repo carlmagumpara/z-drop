@@ -84,8 +84,6 @@ io.on('connection', (socket) => {
     io.to(roomId).emit("message", {
       type,
       data,
-      username,
-      dateTime: new Date()
     });
   });
 
