@@ -80,10 +80,11 @@ io.on('connection', (socket) => {
     socket.to(roomId).emit("left", username);
   });
 
-  socket.on("on-message", ({ roomId, username, message }) => {
+  socket.on("on-message", ({ roomId, username, type, data }) => {
     io.to(roomId).emit("message", {
+      type,
+      data,
       username,
-      message,
       dateTime: new Date()
     });
   });
@@ -99,7 +100,6 @@ io.on('connection', (socket) => {
 
     let userId = null;
 
-    // Hanapin kung aling user ang naka-bind sa socket
     for (let [uid, sid] of onlineUsers.entries()) {
       if (sid === socket.id) {
         userId = uid;
