@@ -16,6 +16,34 @@ import { v4 as uuidv4 } from 'uuid';
 import RightMessage from './right-message';
 import LeftMessage from './left-message';
 
+function computeShowReaders(messages) {
+  // object para hiwalay ang tracking per sender
+  const seenPerSender = {};
+
+  return messages
+    .slice()
+    .reverse()
+    .map(msg => {
+      if (msg.system) return { ...msg, showReaders: [] };
+
+      const sender = msg.username;
+      if (!seenPerSender[sender]) {
+        seenPerSender[sender] = new Set();
+      }
+
+      // kunin readers na hindi pa lumalabas sa sender na ito
+      const readers = (msg.readBy || []).filter(
+        r => !seenPerSender[sender].has(r)
+      );
+
+      // mark na nakita na sila para sa sender na ito
+      readers.forEach(r => seenPerSender[sender].add(r));
+
+      return { ...msg, showReaders: readers };
+    })
+    .reverse();
+}
+
 function Chat({ roomId = '', visibility }) {
   const [playPopSfx] = useSound(popSfx);
   const [playBubbleSfx] = useSound(bubbleSfx);
@@ -87,13 +115,6 @@ function Chat({ roomId = '', visibility }) {
               data.data.username
             ]
           } : item));
-          break;
-        case 'all-messages':
-          setMessages(prevState => [
-              ...prevState, 
-              ...data.data
-            ].filter((obj, index, self) => index === self.findIndex(o => o.id === obj.id))
-          );
           break;
         default:
           console.log('invalid type');
@@ -197,7 +218,7 @@ function Chat({ roomId = '', visibility }) {
           <div className="w-100 d-flex flex-column" style={{ height: 400 }}>
             <div className="flex-grow-1 chat-window overflow-y-auto">
               <div className="messages p-3">
-                {messages.map(item => (
+                {computeShowReaders(messages).map(item => (
                   <div key={item.id}>
                     {item.system ? <p className="small text-center text-secondary mb-0">{item.message}</p> : (
                       <>

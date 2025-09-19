@@ -30,9 +30,9 @@ function RightMessage({ item }) {
         <div className="meta right">
           {`${truncate(item.username)} · ${formatTime(item.dateTime)}`}
         </div>
-        {item.readBy.length ? (
+        {item.showReaders.length ? (
           <div className="d-flex justify-content-start align-items gap-1">
-            <span className="small">✓</span> {item.readBy.map(reader => (
+            <span className="small">✓</span> {item.showReaders.map(reader => (
               <Avatar
                 key={reader}
                 name={reader}

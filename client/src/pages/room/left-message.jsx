@@ -51,6 +51,18 @@ function LeftMessage({ item, roomId }) {
         <div className="meta left">
           {`${truncate(item.username)} · ${formatTime(item.dateTime)}`}
         </div>
+        {item.showReaders.length ? (
+          <div className="d-flex justify-content-start align-items gap-1">
+            <span className="small">✓</span> {item.showReaders.map(reader => (
+              <Avatar
+                key={reader}
+                name={reader}
+                size={15}
+                variant="beam"
+              />
+            ))}
+          </div>
+        ) : null}
       </div>
     </div>
   )
