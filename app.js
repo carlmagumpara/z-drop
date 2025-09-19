@@ -5,31 +5,34 @@ import { dirname, join } from 'node:path';
 import { Server } from 'socket.io';
 import cors from 'cors';
 
-const app = express();
-const server = createServer(app);
-const io = new Server(server, {
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+console.log(__dirname);
+
+const corsConfig = {
   cors: {
-    origin: ["http://localhost:5173", "https://fs-client-x6so.onrender.com"],
+    origin: ["http://localhost:5173", "http://localhost:4000", "https://fs-client-x6so.onrender.com"],
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true
   }
-});
+};
+
+const app = express();
+const server = createServer(app);
+const io = new Server(server, corsConfig);
 
 const port = process.env.PORT || 4000;
 
 let onlineUsers = new Map();
 
-app.use(cors({
-  origin: ["http://localhost:5173", "https://fs-client-x6so.onrender.com"],
-  methods: ["GET", "POST", "PUT", "DELETE"],
-  credentials: true
-}));
+app.use(cors(corsConfig));
+app.use(express.static(join(__dirname, "client/dist")));
 
-app.get('/', (req, res) => {
-  res.send({
-    message: 'Server is working!'
-  });
-});
+// app.get('/', (req, res) => {
+//   res.send({
+//     message: 'Server is working!'
+//   });
+// });
 
 io.on('connection', (socket) => {
 
