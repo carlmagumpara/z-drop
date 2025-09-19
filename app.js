@@ -9,23 +9,23 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const corsConfig = {
-  cors: {
-    origin: ["http://localhost:5173", "http://localhost:4000", "https://fs-client-x6so.onrender.com"],
-    methods: ["GET", "POST", "PUT", "DELETE"],
-    credentials: true
-  }
+  origin: ["http://localhost:5173", "http://localhost:4000", "https://fs-client-x6so.onrender.com"],
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  credentials: true,
 };
 
 const app = express();
 const server = createServer(app);
-const io = new Server(server, corsConfig);
+const io = new Server(server, {
+  cors: corsConfig
+});
 
 const port = process.env.PORT || 4000;
 
 let onlineUsers = new Map();
 
-app.use(cors(corsConfig.cors));
-app.use(express.static(join(__dirname, "client/dist")));
+app.use(cors(corsConfig));
+app.use(express.static(join(__dirname, "client", "dist")));
 
 app.get(/(.*)/, (req, res, next) => {
   res.sendFile(join(__dirname, "client", "dist", "index.html"));
