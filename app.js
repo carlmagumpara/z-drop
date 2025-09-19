@@ -5,9 +5,8 @@ import { dirname, join } from 'node:path';
 import { Server } from 'socket.io';
 import cors from 'cors';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-
-console.log(__dirname);
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const corsConfig = {
   cors: {
@@ -25,14 +24,12 @@ const port = process.env.PORT || 4000;
 
 let onlineUsers = new Map();
 
-app.use(cors(corsConfig));
+app.use(cors(corsConfig.cors));
 app.use(express.static(join(__dirname, "client/dist")));
 
-// app.get('/', (req, res) => {
-//   res.send({
-//     message: 'Server is working!'
-//   });
-// });
+app.get(/(.*)/, (req, res, next) => {
+  res.sendFile(join(__dirname, "client", "dist", "index.html"));
+});
 
 io.on('connection', (socket) => {
 
@@ -117,6 +114,4 @@ io.on('connection', (socket) => {
   });
 });
 
-server.listen(port, () => {
-  console.log(`Example app listening on port ${port}`)
-});
+server.listen(port, () => console.log(`Example app listening on port ${port}`));
