@@ -57,13 +57,13 @@ function Chat({ roomId = '', visibility }) {
   const typingRef = useRef(null);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "instant" });
+    bottomRef.current?.scrollIntoView({ behavior: "auto" });
   }, []);
 
   useEffect(() => {
     if(visibility) {
       setUnread(0);
-      bottomRef.current?.scrollIntoView({ behavior: "instant" });
+      bottomRef.current?.scrollIntoView({ behavior: "auto" });
     }
 
     socket.on("message", (data) => {
