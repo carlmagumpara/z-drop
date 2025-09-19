@@ -30,15 +30,17 @@ function RightMessage({ item }) {
         <div className="meta right">
           {`${truncate(item.username)} · ${formatTime(item.dateTime)}`}
         </div>
-        <div className="d-flex justify-content-start align-items gap-1">
-          <span className="small">✓</span> {item.readBy.map(reader => (
-            <Avatar
-              name={reader}
-              size={15}
-              variant="beam"
-            />
-          ))}
-        </div>
+        {item.readBy.length ? (
+          <div className="d-flex justify-content-start align-items gap-1">
+            <span className="small">✓</span> {item.readBy.map(reader => (
+              <Avatar
+                name={reader}
+                size={15}
+                variant="beam"
+              />
+            ))}
+          </div>
+        ) : null}
       </div>
     </div>
   )
