@@ -80,7 +80,7 @@ io.on('connection', (socket) => {
     socket.to(roomId).emit("left", username);
   });
 
-  socket.on("on-message", ({ roomId, username, type, data }) => {
+  socket.on("on-message", ({ roomId, type, data }) => {
     io.to(roomId).emit("message", {
       type,
       data,
