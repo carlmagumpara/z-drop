@@ -107,7 +107,7 @@ io.on('connection', (socket) => {
 
       const index = messages.findIndex(message=> {
         const parsed = JSON.parse(message);
-        return parsed.id === data.data.message_id;
+        return parsed.id === data.message_id;
       });
 
       if (index !== -1) {
