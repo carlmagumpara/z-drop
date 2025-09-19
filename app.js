@@ -67,8 +67,8 @@ io.on('connection', (socket) => {
   socket.on("join-room", async ({ roomId, username }) => {
     socket.join(roomId);
     console.log(`${username} joined room: ${roomId}`);
-    // socket.to(roomId).emit("joined", [username, socket.id]);
-    io.in(roomId).emit("joined", [username, socket.id]);
+    socket.to(roomId).emit("joined", [username, socket.id]);
+    // io.in(roomId).emit("joined", [username, socket.id]);
   
     socket.data.username = username;
     const messages = await client.lRange(`chat:messages-${roomId}`, 0, -1);

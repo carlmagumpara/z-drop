@@ -57,7 +57,7 @@ function Chat({ roomId = '', visibility }) {
     if(visibility) {
       setUnread(0);
     }
-    
+
     bottomRef.current?.scrollIntoView({ behavior: "auto" });
   }, [messages, visibility]);
 
@@ -217,7 +217,7 @@ function Chat({ roomId = '', visibility }) {
             <div className="flex-grow-1 chat-window overflow-y-auto">
               <div className="messages p-3">
                 {computeShowReaders(messages).map(item => (
-                  <div key={item.id}>
+                  <>
                     {item.system ? <p className="small text-center text-secondary mb-0">{item.message}</p> : (
                       <>
                         {item.username === username ? (
@@ -233,7 +233,7 @@ function Chat({ roomId = '', visibility }) {
                         )}
                       </>
                     )}
-                  </div>
+                  </>
                 ))}
                 <div ref={bottomRef} />
               </div>

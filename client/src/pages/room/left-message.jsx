@@ -19,7 +19,7 @@ function LeftMessage({ item, roomId }) {
         data: {
           message_id: item.id,
           username,
-        },      
+        },
       });
     }
   }, [isVisible]);
