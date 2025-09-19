@@ -4,10 +4,10 @@ import { LuExpand, LuShrink } from 'react-icons/lu';
 import { whoopSfx, popSfx } from './sounds';
 import useSound from '@/hooks/use-sound';
 
-function CustomToast({ children, title = '' }) {
+function CustomToast({ children, visibility = false, title = '' }) {
   const [playPopSfx] = useSound(popSfx);
   const [playWhoopSfx] = useSound(whoopSfx);
-  const [show, setShow] = useState(false);
+  const [show, setShow] = useState(visibility);
 
   return (
     <Toast className="border-0 mb-2">
