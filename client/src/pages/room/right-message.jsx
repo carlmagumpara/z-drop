@@ -5,12 +5,11 @@ import moment from 'moment';
 import Picker from 'emoji-picker-react';
 import { usePresence } from '@/contexts/presence';
 import { socket } from '../../socket';
-import { popSfx } from './sounds';
-import useSound from '@/hooks/use-sound';
+import useSound from './sounds';;
 import AddReaction from '@/assets/add-reaction.png';
 
 function RightMessage({ item, roomId }) {
-  const [playPopSfx] = useSound(popSfx);
+  const sounds = useSound();
   const [hover, setHover] = useState(false);
   const { username } = usePresence();
 
@@ -101,7 +100,7 @@ function RightMessage({ item, roomId }) {
                   },
                 });
                 setHover(false);
-                playPopSfx();
+                sounds.pop?.play();
               }}
             />
           </div>
