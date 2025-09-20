@@ -88,6 +88,10 @@ function PresenceProvider({ children }) {
 
   console.log('analytics', analytics);
 
+  if(!username || !user_id) {
+    return <Loading />;
+  }
+
   return (
     <PresenceContext.Provider
       value={{
