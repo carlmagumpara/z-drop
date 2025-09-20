@@ -62,16 +62,17 @@ function ChatProvider({ children }) {
           };
         }
 
-        const sender = msg.username;
+        const sender = msg.user_id;
+        
         if (!seenPerSender[sender]) {
           seenPerSender[sender] = new Set();
         }
 
         const readers = (msg.readBy || []).filter(
-          r => !seenPerSender[sender].has(r)
+          r => !seenPerSender[sender].has(r.user_id)
         );
 
-        readers.forEach(r => seenPerSender[sender].add(r));
+        readers.forEach(r => seenPerSender[sender].add(r.user_id));
 
         const reactions = Object.values(
           msg.reactions.reduce((acc, [_, emoji]) => {

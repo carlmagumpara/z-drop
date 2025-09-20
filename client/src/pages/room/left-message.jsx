@@ -18,7 +18,7 @@ function LeftMessage({ item, roomId }) {
   const { user_id, username } = usePresence();
   
   useEffect(() => {
-    if(isVisible && !item.readBy.includes(username)) {
+    if(isVisible && !item.readBy.find(user => user.user_id === user_id)) {
       socket.emit("on-message", {
         roomId,
         type: 'read',

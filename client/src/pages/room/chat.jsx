@@ -120,7 +120,7 @@ function Chat({ roomId = '' }) {
             ...item,
             readBy: [
               ...item.readBy, 
-              data.data.username
+              data.data
             ]
           } : item));
           break;

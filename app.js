@@ -134,7 +134,7 @@ io.on('connection', (socket) => {
 
         updated.readBy = [
           ...updated.readBy,
-          data.username
+          data
         ];
         await client.lSet(
           `chat:messages-${roomId}`, 
