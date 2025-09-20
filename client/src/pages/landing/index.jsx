@@ -12,44 +12,30 @@ const imageModules = import.meta.glob('@/assets/formats/*.{png,jpg,jpeg,gif,svg}
 });
 const imageUrls = Object.values(imageModules);
 
+const positions = [
+  ["68.0079vh", "78.1169vw", 9.8137],
+  ["16.6089vh", "66.5236vw", 4.26769],
+  ["44.8406vh", "30.1708vw", 11.36872],
+  ["81.8894vh", "49.8739vw", 7.05431],
+  ["79.5659vh", "69.8348vw", 2.77171],
+  ["75.0066vh", "17.3301vw", 5.17751],
+  ["41.0161vh", "12.6346vw", 3.34194],
+  ["51.2666vh", "83.3114vw", 9.8813],
+  ["83.6709vh", "33.481vw", 5.1069],
+  ["17.1147vh", "11.1785vw", 5.27081]
+];
+
 function Landing() {
   const navigate = useNavigate();
   const { users, analytics } = usePresence();
-  const [items, setItems] = useState([]);
-
-  const generated = () => {
-    return Array.from({ length: imageUrls.length }, (_, index) => {
-      const top = `${Math.random() * 90}`;
-      const left = `${Math.random() * 90}`;
-
-      return {
-        top,
-        left,
-        originalTop: top,
-        originalLeft: left,
-        src: imageUrls[index],
-        duration: `${4 + Math.random() * 4}s`
-      }
-    });
-  };
 
   useEffect(() => {
-    setItems(generated());
-  }, []);  
-
-  useEffect(() => {
-    const onMouseMove = (event) => {
-      setItems(prevState => prevState.map(item => ({
-        ...item,
-        top: parseFloat(item.originalTop) + (event.clientX / 1000),
-        left: parseFloat(items.originalLeft) + (event.clientX / 1000),
-      })));
-    };
+    const onMouseMove = (event) => {};
 
     window.addEventListener('mousemove', onMouseMove);
 
     return () => window.removeEventListener('mousemove', onMouseMove);
-  }, [items]);  
+  }, []);  
 
   return (
     <div className="radar-container">
@@ -110,20 +96,20 @@ function Landing() {
             </div>
           </div>
         </div>
-        {items.map((item, i) => (
+        {imageUrls.map((item, index) => (
           <img
-            key={i}
-            src={item.src}
+            key={index}
+            src={item}
             alt="logo"
             className="floating-logo"
             style={{
               position: "absolute",
-              top: `${item.top}vh`,
-              left: `${item.left}vw`,
+              top: positions[index][0],
+              left: positions[index][1],
               width: "60px",
               opacity: 0.70,
               pointerEvents: "none",
-              animation: `float ${item.duration} ease-in-out infinite`,
+              animation: `float ${positions[index][2]}s ease-in-out infinite`,
               zIndex: 998
             }}
           />
