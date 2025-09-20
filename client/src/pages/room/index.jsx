@@ -1,7 +1,6 @@
 import 'animate.css';
-import '../../radar.scss'
-
-import { useEffect, useState, useRef } from 'react';
+import '@/radar.scss'
+import { useEffect, useState, useRef, lazy, Suspense } from 'react';
 import { useParams, useSearchParams } from 'react-router';
 import { Container, Row, Col, Form, Button, InputGroup, ToastContainer, Badge } from 'react-bootstrap';
 import { v4 as uuidv4 } from 'uuid';
@@ -17,10 +16,9 @@ import useSound from '@/hooks/use-sound';
 import ChatProvider, { useChat } from './chat-context';
 import { iceConfig } from './config';
 
-import FileList from './file-list';
-import CustomToast from './toast';
-import Chat from './chat';
-
+const FileList = lazy(() => import('./file-list'));
+const CustomToast = lazy(() => import('./toast'));
+const Chat = lazy(() => import('./chat'));
 
 function Room() {
   const { roomId } = useParams();
@@ -347,28 +345,32 @@ function Room() {
             zIndex: 999
           }}
         >
-          <CustomToast
-            title={`Receiving Files (${receiving.length})`}
-            visibility={false}
-          >
-            {visibility => (
-              <FileList
-                files={receiving}
-                download={true}
-              />
-            )}
-          </CustomToast>
-          <CustomToast
-            title={`Sending Files (${sending.length})`}
-            visibility={false}
-          >
-            {visibility => (
-              <FileList
-                files={sending}
-                download={false}
-              />
-            )}
-          </CustomToast>
+          <Suspense fallback={<div>Loading...</div>}>
+            <CustomToast
+              title={`Receiving Files (${receiving.length})`}
+              visibility={false}
+            >
+              {visibility => (
+                <FileList
+                  files={receiving}
+                  download={true}
+                />
+              )}
+            </CustomToast>
+          </Suspense>
+          <Suspense fallback={<div>Loading...</div>}>
+            <CustomToast
+              title={`Sending Files (${sending.length})`}
+              visibility={false}
+            >
+              {visibility => (
+                <FileList
+                  files={sending}
+                  download={false}
+                />
+              )}
+            </CustomToast>
+          </Suspense>
         </ToastContainer>
         <div
           className="position-absolute d-flex justify-content-between align-items-center gap-3"
@@ -469,9 +471,11 @@ function Room() {
           />
         </Form.Group>
       </div>
-      <Chat
-        roomId={roomId}
-      />
+      <Suspense fallback={null}>
+        <Chat
+          roomId={roomId}
+        />
+      </Suspense>
     </>
   );
 }

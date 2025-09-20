@@ -1,5 +1,5 @@
-import '../../chat.scss';
-import { Fragment, useEffect, useState, useRef } from 'react';
+import '@/chat.scss';
+import { Fragment, useEffect, useState, useRef, lazy, Suspense } from 'react';
 import { Form, InputGroup, Button, OverlayTrigger, Offcanvas, Badge } from 'react-bootstrap';
 import Avatar from 'boring-avatars';
 import moment from 'moment';
@@ -14,8 +14,8 @@ import { popSfx, bubbleSfx, messageSfx } from './sounds';
 import useSound from '@/hooks/use-sound';
 import { v4 as uuidv4 } from 'uuid';
 
-import RightMessage from './right-message';
-import LeftMessage from './left-message';
+const RightMessage = lazy(() => import('./right-message'));
+const LeftMessage = lazy(() => import('./left-message'));
 
 function Chat({ roomId = '' }) {
   const [playPopSfx] = useSound(popSfx);
@@ -277,46 +277,48 @@ function Chat({ roomId = '' }) {
                   <div 
                     className="messages p-3"
                   >
-                    {messages.map(item => (
-                      <Fragment key={item.id}>
-                        {item.system ? (
-                          <>
-                            {item.messages.length === 1 ? (
-                              <p style={{ fontSize: 11 }} className="text-center text-secondary mb-0">
-                                {item.messages[0]}
-                              </p>
-                            ) : (
-                            <details>
-                              <summary>View Updates</summary>
-                              {item.messages.map((message, index) => (
-                                <p 
-                                  key={index}
-                                  style={{ fontSize: 11 }} 
-                                  className="text-center text-secondary mb-0"
-                                >
-                                  {message}
+                    <Suspense fallback={<div>Loading...</div>}>
+                      {messages.map(item => (
+                        <Fragment key={item.id}>
+                          {item.system ? (
+                            <>
+                              {item.messages.length === 1 ? (
+                                <p style={{ fontSize: 11 }} className="text-center text-secondary mb-0">
+                                  {item.messages[0]}
                                 </p>
-                              ))}
-                            </details>
-                            )}
-                          </>
-                        ) : (
-                          <>
-                            {item.username === username ? (
-                              <RightMessage 
-                                item={item}
-                                roomId={roomId}
-                              />
-                            ) : (
-                              <LeftMessage 
-                                item={item}
-                                roomId={roomId}
-                              />
-                            )}
-                          </>
-                        )}
-                      </Fragment>
-                    ))}
+                              ) : (
+                              <details>
+                                <summary>View Updates</summary>
+                                {item.messages.map((message, index) => (
+                                  <p 
+                                    key={index}
+                                    style={{ fontSize: 11 }} 
+                                    className="text-center text-secondary mb-0"
+                                  >
+                                    {message}
+                                  </p>
+                                ))}
+                              </details>
+                              )}
+                            </>
+                          ) : (
+                            <>
+                              {item.username === username ? (
+                                <RightMessage 
+                                  item={item}
+                                  roomId={roomId}
+                                />
+                              ) : (
+                                <LeftMessage 
+                                  item={item}
+                                  roomId={roomId}
+                                />
+                              )}
+                            </>
+                          )}
+                        </Fragment>
+                      ))}
+                    </Suspense>
                     <div ref={bottomRef} />
                   </div>
                 </div>
