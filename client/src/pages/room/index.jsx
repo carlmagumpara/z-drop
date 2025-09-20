@@ -307,7 +307,7 @@ function Room() {
   useEffect(() => {
     socket.on("joined", (data) => {
       if(data.user_id !== user_id) {
-        messageApi.info(`${user[0]} joined the room`);
+        messageApi.info(`${data.username} joined the room`);
       }
       socket.emit("on-message", {
         roomId,

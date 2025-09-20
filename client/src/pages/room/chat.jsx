@@ -127,28 +127,36 @@ function Chat({ roomId = '' }) {
           } : item));
           break;
         case 'react':
-          // setMessages(prevState =>
-          //   prevState.map(item => {
-          //     if (item.id !== data.data.message_id) return item;
+          setMessages(prevState =>
+            prevState.map(item => {
+              const updated = { ...item };
 
-          //     const reactions = item.reactions ?? [];
-          //     const username = data.data.username;
-          //     const emoji = data.data.emoji;
+              if (item.id !== data.data.message_id) {
+                return item
+              };
 
-          //     const updatedReactions = reactions.map(r =>
-          //       r[0] === username ? [username, emoji] : r
-          //     );
+              const reactions = updated.reactions ?? [];
 
-          //     if (!reactions.some(r => r[0] === username)) {
-          //       updatedReactions.push([username, emoji]);
-          //     }
+              if(!reactions.some(_item => _item.user_id === data.data.user_id)) {
+                updated.reactions = [
+                  ...reactions, 
+                  data.data
+                ];
+              } else {
+                const react = reactions.find(_item => _item.user_id === data.data.user_id);
+                if(react.emoji === data.data.emoji) {
+                  updated.reactions = reactions.filter(_item => _item.user_id === data.data.user_id);
+                } else {
+                  updated.reactions = reactions.map(_item => item.user_id === data.data.user_id? data.data : item);
+                }
+              }
 
-          //     return { 
-          //       ...item, 
-          //       reactions: updatedReactions 
-          //     };
-          //   })
-          // );
+              return { 
+                ...item, 
+                reactions: updated
+              };
+            })
+          );
           break;
         default:
           console.log('invalid type');
