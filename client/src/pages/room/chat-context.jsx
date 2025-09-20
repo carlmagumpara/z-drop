@@ -77,10 +77,10 @@ function ChatProvider({ children }) {
           seenPerSender[sender] = new Set();
         }
 
-        const readers = (msg.readers || []).filter(r => !seenPerSender[sender].has(r.user_id));
+        const readers = (msg.readers ?? []).filter(r => !seenPerSender[sender].has(r.user_id));
         readers.forEach(r => seenPerSender[sender].add(r.user_id));
 
-        const reactions = (msg.reactions || []).reduce((acc, item) => {
+        const reactions = (msg.reactions ?? []).reduce((acc, item) => {
           acc[item.emoji] = acc[item.emoji] || [item.emoji, 0];
           acc[item.emoji][1]++;
           return acc;
