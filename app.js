@@ -59,6 +59,22 @@ io.on('connection', (socket) => {
 
   console.log("User connected:", socket.id);
 
+  socket.on("files-counter", async (data) => {
+    await client.incr("files:counter");
+    const value = await client.get("files:counter");
+    io.emit("total_files", value);
+  });
+
+  socket.on("user_online", async (userId) => {
+    onlineUsers.set(userId, socket.id);
+    console.log(`${userId} is online`);
+    await client.sAdd("users", userId); 
+    const users = await client.sMembers(key);
+
+    io.emit("total_users", users);
+    io.emit("update_users", Array.from(onlineUsers.keys()));
+  });
+
   socket.on("offer", (data) => {
     socket.to(data.to).emit("offer", { 
       from: socket.id, 
@@ -171,12 +187,6 @@ io.on('connection', (socket) => {
         );
       };
     }
-  });
-
-  socket.on("user_online", (userId) => {
-    onlineUsers.set(userId, socket.id);
-    console.log(`${userId} is online`);
-    io.emit("update_users", Array.from(onlineUsers.keys()));
   });
 
   socket.on("disconnect", () => {
