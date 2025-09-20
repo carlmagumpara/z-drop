@@ -132,8 +132,8 @@ io.on('connection', (socket) => {
       if (index !== -1) {
         const updated = JSON.parse(messages[index]);
 
-        updated.readBy = [
-          ...updated.readBy,
+        updated.readers = [
+          ...updated.readers,
           data
         ];
         await client.lSet(

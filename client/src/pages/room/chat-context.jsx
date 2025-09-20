@@ -48,6 +48,15 @@ function ChatProvider({ children }) {
     return result;
   };
 
+  // const formatTime = (date) => {
+  //   const diffInSeconds = moment().diff(moment(date), "seconds");
+  //   if (diffInSeconds < 5) {
+  //     return "just now";
+  //   }
+
+  //   return moment(date).fromNow();
+  // };
+
   function formatMessages(messages) {
     const seenPerSender = {};
 
@@ -57,7 +66,7 @@ function ChatProvider({ children }) {
       .map(msg => {
         if (msg.system) {
           return { 
-            ...msg, 
+            ...msg,
             readers: [] 
           };
         }
@@ -68,7 +77,7 @@ function ChatProvider({ children }) {
           seenPerSender[sender] = new Set();
         }
 
-        const readers = (msg.readBy || []).filter(r => !seenPerSender[sender].has(r.user_id));
+        const readers = (msg.readers || []).filter(r => !seenPerSender[sender].has(r.user_id));
         readers.forEach(r => seenPerSender[sender].add(r.user_id));
 
         const reactions = msg.reactions.reduce((acc, item) => {

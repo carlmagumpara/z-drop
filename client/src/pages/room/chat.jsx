@@ -120,8 +120,8 @@ function Chat({ roomId = '' }) {
         case 'read':
           setMessages(prevState => prevState.map(item => item.id === data.data.message_id ? {
             ...item,
-            readBy: [
-              ...item.readBy, 
+            readers: [
+              ...item.readers, 
               data.data
             ]
           } : item));
@@ -190,7 +190,7 @@ function Chat({ roomId = '' }) {
         id: uuidv4(),
         user_id,
         username,
-        readBy: [],
+        readers: [],
         reactions: [],
         system: false,
         dateTime: new Date()
