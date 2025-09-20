@@ -1,5 +1,5 @@
 import '@/chat.scss';
-import { Fragment, useEffect, useState, useRef, lazy, Suspense } from 'react';
+import { Fragment, useEffect, useState, useRef } from 'react';
 import { Form, InputGroup, Button, OverlayTrigger, Offcanvas, Badge } from 'react-bootstrap';
 import Avatar from 'boring-avatars';
 import moment from 'moment';
@@ -10,17 +10,13 @@ import EmojiPicker from 'emoji-picker-react';
 import { socket } from '../../socket';
 import { usePresence } from '@/contexts/presence';
 import { useChat } from './chat-context';
-import { popSfx, bubbleSfx, messageSfx } from './sounds';
-import useSound from '@/hooks/use-sound';
+import useSound from './sounds';
 import { v4 as uuidv4 } from 'uuid';
-
-const RightMessage = lazy(() => import('./right-message'));
-const LeftMessage = lazy(() => import('./left-message'));
+import RightMessage from './right-message';
+import LeftMessage from './left-message';
 
 function Chat({ roomId = '' }) {
-  const [playPopSfx] = useSound(popSfx);
-  const [playBubbleSfx] = useSound(bubbleSfx);
-  const [playMessageSfx] = useSound(messageSfx);
+  const sounds = useSound();
   const { username } = usePresence();
   const {
     messages, 
@@ -77,7 +73,7 @@ function Chat({ roomId = '' }) {
             data.data
           ]);
           if(data.data.username !== username) {
-            playPopSfx();
+            sounds.pop?.play();
             if(!chat || !isBottom) {
               setUnread(prevState => prevState + 1);
             }
@@ -87,14 +83,14 @@ function Chat({ roomId = '' }) {
                 behavior: "smooth" 
               });
             }, 100);
-            playMessageSfx();
+            sounds.messageenvoyeiphoneapple?.play();
           }
           break;
         case 'typing':
           if(data.data.username !== username) {
             setTyping(prevState => {
               if(!prevState.includes(data.data.username)) {
-                playBubbleSfx();
+                sounds.bubble?.play();
 
                 return [
                   ...prevState,
@@ -277,48 +273,46 @@ function Chat({ roomId = '' }) {
                   <div 
                     className="messages p-3"
                   >
-                    <Suspense fallback={<div>Loading...</div>}>
-                      {messages.map(item => (
-                        <Fragment key={item.id}>
-                          {item.system ? (
-                            <>
-                              {item.messages.length === 1 ? (
-                                <p style={{ fontSize: 11 }} className="text-center text-secondary mb-0">
-                                  {item.messages[0]}
+                    {messages.map(item => (
+                      <Fragment key={item.id}>
+                        {item.system ? (
+                          <>
+                            {item.messages.length === 1 ? (
+                              <p style={{ fontSize: 11 }} className="text-center text-secondary mb-0">
+                                {item.messages[0]}
+                              </p>
+                            ) : (
+                            <details>
+                              <summary>View Updates</summary>
+                              {item.messages.map((message, index) => (
+                                <p 
+                                  key={index}
+                                  style={{ fontSize: 11 }} 
+                                  className="text-center text-secondary mb-0"
+                                >
+                                  {message}
                                 </p>
-                              ) : (
-                              <details>
-                                <summary>View Updates</summary>
-                                {item.messages.map((message, index) => (
-                                  <p 
-                                    key={index}
-                                    style={{ fontSize: 11 }} 
-                                    className="text-center text-secondary mb-0"
-                                  >
-                                    {message}
-                                  </p>
-                                ))}
-                              </details>
-                              )}
-                            </>
-                          ) : (
-                            <>
-                              {item.username === username ? (
-                                <RightMessage 
-                                  item={item}
-                                  roomId={roomId}
-                                />
-                              ) : (
-                                <LeftMessage 
-                                  item={item}
-                                  roomId={roomId}
-                                />
-                              )}
-                            </>
-                          )}
-                        </Fragment>
-                      ))}
-                    </Suspense>
+                              ))}
+                            </details>
+                            )}
+                          </>
+                        ) : (
+                          <>
+                            {item.username === username ? (                              
+                              <RightMessage
+                                item={item}
+                                roomId={roomId}
+                              />
+                            ) : (
+                              <LeftMessage 
+                                item={item}
+                                roomId={roomId}
+                              />
+                            )}
+                          </>
+                        )}
+                      </Fragment>
+                    ))}
                     <div ref={bottomRef} />
                   </div>
                 </div>
@@ -345,7 +339,6 @@ function Chat({ roomId = '' }) {
                     </div>
                   </div>
                 ) : null}
-
                 {typing.length ? (
                   <p 
                     className="position-absolute small text-secondary" 
@@ -397,7 +390,7 @@ function Chat({ roomId = '' }) {
                 </div>
               </div>
             </Form>
-         )}
+          )}
         </Formik>
       </Offcanvas.Body>
     </Offcanvas>

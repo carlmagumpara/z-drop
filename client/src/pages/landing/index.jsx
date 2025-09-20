@@ -58,7 +58,7 @@ function Landing() {
                 No limits, No delays — Share and Talk instantly!
               </h3>
               <Button
-                size="lg"
+                size="lg"                
                 onClick={() => navigate(`/r/${uuidv4()}`)}
               >
                 Start Transferring Files

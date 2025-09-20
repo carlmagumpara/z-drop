@@ -1,12 +1,8 @@
 import { useState } from 'react';
 import { Toast, Button } from 'react-bootstrap';
 import { LuExpand, LuShrink } from 'react-icons/lu';
-import { whoopSfx, popSfx } from './sounds';
-import useSound from '@/hooks/use-sound';
 
 function CustomToast({ children, visibility = false, title = '' }) {
-  const [playPopSfx] = useSound(popSfx);
-  const [playWhoopSfx] = useSound(whoopSfx);
   const [show, setShow] = useState(visibility);
 
   return (
@@ -25,14 +21,7 @@ function CustomToast({ children, visibility = false, title = '' }) {
             height: 30,
             lineHeight: 1 
           }}
-          onClick={() => {
-            if(show) {
-              playWhoopSfx();
-            } else {
-              playPopSfx();
-            }
-            setShow(!show);
-          }}
+          onClick={() => setShow(!show)}
         >
           {show ? <LuShrink size={15} /> : <LuExpand size={15} />}
         </Button>

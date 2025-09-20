@@ -11,8 +11,7 @@ import { socket } from '../../socket';
 import { usePresence } from '@/contexts/presence';
 import { useMessage } from '@/contexts/message';
 import { useGlobalModal, MODAL_TYPES } from '@/contexts/global-modal';
-import { whoopSfx, popSfx, messageNotificationSfx } from './sounds';
-import useSound from '@/hooks/use-sound';
+import useSound from './sounds';
 import ChatProvider, { useChat } from './chat-context';
 import { iceConfig } from './config';
 
@@ -38,10 +37,7 @@ function Room() {
   const targetId = useRef(null);
   const [targetIdChanges, setTargetIdChanges] = useState(null);
   const [positions, setPositions] = useState([]);
-
-  const [playPopSfx] = useSound(popSfx);
-  const [playWhoopSfx] = useSound(whoopSfx);
-  const [playMessageNotificationSfx] = useSound(messageNotificationSfx);
+  const sounds = useSound();
 
   const size = 60;
   const maxTries = 500;
@@ -185,7 +181,7 @@ function Room() {
               } : item;
             }));
             received = [];
-            playMessageNotificationSfx();
+            sounds.messagenotification?.play();
           }
         } else {
           received.push(msg.data);
@@ -308,7 +304,7 @@ function Room() {
       });
     });
     socket.on("left", (username) => {
-      playWhoopSfx();
+      sounds.simplewhoosh?.play();
       setUsers(prevState => prevState.filter(item => item[0] !== username));
       messageApi.info(`${username} left the room`);
 
@@ -345,7 +341,7 @@ function Room() {
             zIndex: 999
           }}
         >
-          <Suspense fallback={<div>Loading...</div>}>
+          <Suspense fallback={null}>
             <CustomToast
               title={`Receiving Files (${receiving.length})`}
               visibility={false}
@@ -358,7 +354,7 @@ function Room() {
               )}
             </CustomToast>
           </Suspense>
-          <Suspense fallback={<div>Loading...</div>}>
+          <Suspense fallback={null}>
             <CustomToast
               title={`Sending Files (${sending.length})`}
               visibility={false}
@@ -430,7 +426,7 @@ function Room() {
               className={`animate__animated ${p.username === username ? `animate__bounceIn` : `animate__heartBeat animate__infinite`}`}
               onClick={event => {
                 if(p.username === username) {
-                  playPopSfx();
+                  sounds.pop?.play();
                   return;
                 }
 
