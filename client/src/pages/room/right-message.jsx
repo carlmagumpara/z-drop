@@ -46,9 +46,9 @@ function RightMessage({ item, roomId }) {
           </div>
         </div>
         <div className="d-flex justify-content-between align-items-center pt-1">
-          {item.showReaders.length ? (
+          {item.readers.length ? (
             <div className="d-flex justify-content-start align-items gap-1">
-              <span className="small">✓</span> {item.showReaders.map(reader => (
+              <span className="small">✓</span> {item.readers.map(reader => (
                 <Avatar
                   key={reader}
                   name={reader}
@@ -58,9 +58,9 @@ function RightMessage({ item, roomId }) {
               ))}
             </div>
           ) : <div />}
-          {(item.showReactions ?? []).length ? (
+          {(item.reactions ?? []).length ? (
             <div className="d-flex justify-content-end align-items gap-1 h6">
-              {(item.showReactions ?? []).map((emoji, index) => (
+              {(item.reactions ?? []).map((emoji, index) => (
                 <span key={`${emoji[0]}-index`} className="animate__animated animate__bounceIn">
                   {`${emoji[0]} ${emoji[1]}`}
                 </span>

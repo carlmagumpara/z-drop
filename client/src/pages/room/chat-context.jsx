@@ -58,7 +58,7 @@ function ChatProvider({ children }) {
         if (msg.system) {
           return { 
             ...msg, 
-            showReaders: [] 
+            readers: [] 
           };
         }
 
@@ -68,22 +68,19 @@ function ChatProvider({ children }) {
           seenPerSender[sender] = new Set();
         }
 
-        const readers = (msg.readBy || []).filter(
-          r => !seenPerSender[sender].has(r.user_id)
-        );
-
+        const readers = (msg.readBy || []).filter(r => !seenPerSender[sender].has(r.user_id));
         readers.forEach(r => seenPerSender[sender].add(r.user_id));
 
         const reactions = msg.reactions.reduce((acc, item) => {
-          acc[item.emoji] = acc[item.emoji] || [emoji, 0];
-          acc[emoji][1]++;
+          acc[item.emoji] = acc[item.emoji] || [item.emoji, 0];
+          acc[item.emoji][1]++;
           return acc;
         });
 
         return { 
           ...msg, 
-          showReaders: readers,
-          showReactions: reactions,
+          readers,
+          reactions,
         };
       })
       .reverse();
