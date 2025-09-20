@@ -42,9 +42,10 @@ function RightMessage({ item, roomId }) {
         <div 
           className="bubble"
         >
-          {item.message}
+          <p>{item.message}</p>
           <div className="meta right">
-            {`${item.username} · ${formatTime(item.dateTime)}`}
+            <p className="mb-0">{item.username}</p>
+            <p className="mb-0">{formatTime(item.dateTime)}</p>
           </div>
         </div>
         <div className="d-flex justify-content-between align-items-center pt-1">
