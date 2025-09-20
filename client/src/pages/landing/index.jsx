@@ -73,7 +73,7 @@ function Landing() {
               </h3>
               <Button
                 size="lg"
-                className="mb-5"      
+                className="mb-2"      
                 onClick={() => navigate(`/r/${uuidv4()}`)}
               >
                 Start Transferring Files
