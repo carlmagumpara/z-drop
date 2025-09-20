@@ -61,8 +61,8 @@ io.on('connection', (socket) => {
 
   socket.on("files-counter", async (data) => {
     await client.incr("files:counter");
-    const value = await client.get("files:counter");
-    io.emit("total_files", value);
+    const files = await client.get("files:counter");
+    io.emit("total_files", files);
   });
 
   socket.on("user_online", async (userId) => {
@@ -70,8 +70,10 @@ io.on('connection', (socket) => {
     console.log(`${userId} is online`);
     await client.sAdd("users", userId); 
     const users = await client.sMembers("users");
+    const files = await client.get("files:counter");
 
-    io.emit("total_users", users);
+    io.emit("total_files", files);
+    io.emit("total_users", users.length);
     io.emit("update_users", Array.from(onlineUsers.keys()));
   });
 
