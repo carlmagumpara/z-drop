@@ -74,7 +74,7 @@ function ChatProvider({ children }) {
 
         readers.forEach(r => seenPerSender[sender].add(r.user_id));
 
-        const reactions = reactions.reduce((acc, item) => {
+        const reactions = msg.reactions.reduce((acc, item) => {
           acc[item.emoji] = acc[item.emoji] || [emoji, 0];
           acc[emoji][1]++;
           return acc;
