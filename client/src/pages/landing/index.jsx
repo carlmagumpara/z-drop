@@ -14,7 +14,7 @@ const imageUrls = Object.values(imageModules);
 
 function Landing() {
   const navigate = useNavigate();
-  const { users } = usePresence();
+  const { users, analytics } = usePresence();
   const [items, setItems] = useState([]);
 
   const generated = () => {
@@ -84,7 +84,7 @@ function Landing() {
                   <h4>
                     <CountUp
                       start={0}
-                      end={100} 
+                      end={analytics.files} 
                     />
                   </h4>
                 </div>
@@ -93,7 +93,7 @@ function Landing() {
                   <h4>
                     <CountUp
                       start={0}
-                      end={users.length} 
+                      end={analytics.users} 
                     />
                   </h4>
                 </div>

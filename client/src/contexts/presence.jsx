@@ -11,6 +11,10 @@ function PresenceProvider({ children }) {
   const [username, setUserName] = useState(localStorage.getItem("username"));
   const [auto_dowload, setAutoDownload] = useState(localStorage.getItem("auto_download") === 'true');
   const [users, setUsers] = useState([]);
+  const [analytics, setAnalytics] = useState({
+    files: 0,
+    users: 0,
+  });
 
   useEffect(() => {
     const onConnect = () => {
@@ -45,10 +49,20 @@ function PresenceProvider({ children }) {
 
     const onTotalUsers = (value) => {
       console.log("total_users", value);
+
+      setAnalytics(prevState => ({
+        ...prevState,
+        users: value ?? 0,
+      }));
     };
 
     const onTotalFiles = (value) => {
       console.log("total_files", value);
+
+      setAnalytics(prevState => ({
+        ...prevState,
+        files: value ?? 0,
+      }));
     };
 
     socket.on('connect', onConnect);
@@ -66,6 +80,8 @@ function PresenceProvider({ children }) {
     };
   }, [username]);
 
+  console.log('analytics', analytics);
+
   return (
     <PresenceContext.Provider
       value={{
@@ -74,6 +90,7 @@ function PresenceProvider({ children }) {
         auto_dowload, 
         setAutoDownload,
         users,
+        analytics,
         isConnected
       }}
     >
