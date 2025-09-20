@@ -56,7 +56,6 @@ app.get(/(.*)/, (req, res, next) => {
 });
 
 io.on('connection', (socket) => {
-
   console.log("User connected:", socket.id);
 
   socket.on("files-counter", async (data) => {
@@ -65,10 +64,10 @@ io.on('connection', (socket) => {
     io.emit("total_files", files);
   });
 
-  socket.on("user_online", async (userId) => {
-    onlineUsers.set(userId, socket.id);
-    console.log(`${userId} is online`);
-    await client.sAdd("users", userId); 
+  socket.on("user_online", async ({ user_id, username }) => {
+    onlineUsers.set(user_id, socket.id);
+    console.log(`${username} is online`);
+    await client.sAdd("users", user_id);
     const users = await client.sMembers("users");
     const files = await client.get("files:counter");
 
@@ -77,32 +76,20 @@ io.on('connection', (socket) => {
     io.emit("update_users", Array.from(onlineUsers.keys()));
   });
 
-  socket.on("offer", (data) => {
-    socket.to(data.to).emit("offer", { 
-      from: socket.id, 
-      sdp: data.sdp 
-    });
+  socket.on("create-private-room", async ({ roomId, password }) => {
+    await client.set(`rooms:private-${roomId}`, password);
   });
 
-  socket.on("answer", (data) => {
-    socket.to(data.to).emit("answer", { 
-      from: socket.id, 
-      sdp: data.sdp 
-    });
-  });
-
-  socket.on("ice-candidate", (data) => {
-    socket.to(data.to).emit("ice-candidate", { 
-      from: socket.id, 
-      candidate: data.candidate 
-    });
-  });
-
-  socket.on("join-room", async ({ roomId, username }) => {
+  socket.on("join-room", async ({ roomId, user_id, username }) => {
     socket.join(roomId);
     console.log(`${username} joined room: ${roomId}`);
-    socket.to(roomId).emit("joined", [username, socket.id]);
+    socket.to(roomId).emit("joined", {
+      user_id, 
+      username,
+      socket_id: socket.id
+    });
     socket.data.username = username;
+    socket.data.user_id = user_id;
     const messages = await client.lRange(`chat:messages-${roomId}`, 0, -1);
     const clients = io.sockets.adapter.rooms.get(roomId);
     const users = [];
@@ -110,7 +97,7 @@ io.on('connection', (socket) => {
     if (clients) {
       for (const clientId of clients) {
         const clientSocket = io.sockets.sockets.get(clientId);
-        users.push([clientSocket.data.username, clientId]);
+        users.push([clientSocket.data.user_id, clientSocket.data.username, clientId]);
       }
     }
 
@@ -118,10 +105,10 @@ io.on('connection', (socket) => {
     socket.emit("chat-history", messages.map((m) => JSON.parse(m)));
   });
 
-  socket.on("leave-room", ({ roomId, username }) => {
+  socket.on("leave-room", ({ roomId, user_id, username }) => {
     socket.leave(roomId);
     console.log(`${username} left room: ${roomId}`);
-    socket.to(roomId).emit("left", username);
+    socket.to(roomId).emit("left", { user_id, username });
   });
 
   socket.on("on-message", async ({ roomId, type, data }) => {
@@ -189,6 +176,27 @@ io.on('connection', (socket) => {
         );
       };
     }
+  });
+
+  socket.on("offer", (data) => {
+    socket.to(data.to).emit("offer", { 
+      from: socket.id, 
+      sdp: data.sdp 
+    });
+  });
+
+  socket.on("answer", (data) => {
+    socket.to(data.to).emit("answer", { 
+      from: socket.id, 
+      sdp: data.sdp 
+    });
+  });
+
+  socket.on("ice-candidate", (data) => {
+    socket.to(data.to).emit("ice-candidate", { 
+      from: socket.id, 
+      candidate: data.candidate 
+    });
   });
 
   socket.on("disconnect", () => {

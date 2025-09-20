@@ -5,9 +5,9 @@ import { usePresence } from '@/contexts/presence';
 import Navigation from './navigation';
 
 function Wrapper() {
-  const { username } = usePresence();
+  const { user_id, username } = usePresence();
 
-  if(!username) {
+  if(!username || !user_id) {
     return <Loading />;
   }
 

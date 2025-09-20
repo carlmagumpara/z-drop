@@ -22,7 +22,7 @@ function Room() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { handleShow } = useGlobalModal();
   const messageApi = useMessage();
-  const { username } = usePresence();
+  const { user_id, username } = usePresence();
   const { chat, unread, toogleChat, offcanvasswidth } = useChat();
   const [users, setUsers] = useState([]);
   const [receiving, setReceiving] = useState([]);
@@ -231,9 +231,17 @@ function Room() {
       });
     }
   
-    socket.emit("join-room", { roomId, username });  
+    socket.emit("join-room", { 
+      roomId, 
+      username, 
+      user_id,
+    });  
 
-    const handleBeforeUnload = (event) => socket.emit("leave-room", { roomId, username });
+    const handleBeforeUnload = (event) => socket.emit("leave-room", { 
+      roomId, 
+      username, 
+      user_id,
+    });
 
     window.addEventListener('beforeunload', handleBeforeUnload);
 
@@ -291,8 +299,8 @@ function Room() {
   };
 
   useEffect(() => {
-    socket.on("joined", (user) => {
-      if(user[0] !== username) {
+    socket.on("joined", (data) => {
+      if(data.user_id !== user_id) {
         messageApi.info(`${user[0]} joined the room`);
       }
       socket.emit("on-message", {
@@ -301,14 +309,14 @@ function Room() {
         data: {
           id: uuidv4(),
           system: true,
-          message: `${user[0]} joined the room`,
+          message: `${data.username} joined the room`,
         },      
       });
     });
-    socket.on("left", (username) => {
+    socket.on("left", (data) => {
       sounds.simplewhoosh?.play();
-      setUsers(prevState => prevState.filter(item => item[0] !== username));
-      messageApi.info(`${username} left the room`);
+      setUsers(prevState => prevState.filter(item => item[0] !== data.user_id));
+      messageApi.info(`${data.username} left the room`);
 
       socket.emit("on-message", {
         roomId,
@@ -316,9 +324,9 @@ function Room() {
         data: {
           id: uuidv4(),
           system: true,
-          message: `${username} left the room`,
+          message: `${data.username} left the room`,
         },      
-      }); 
+      });
     });
     
     socket.on("room-users", (message) => {

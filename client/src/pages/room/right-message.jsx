@@ -11,7 +11,7 @@ import AddReaction from '@/assets/add-reaction.png';
 function RightMessage({ item, roomId }) {
   const sounds = useSound();
   const [hover, setHover] = useState(false);
-  const { username } = usePresence();
+  const { user_id, username } = usePresence();
 
   const formatTime = (date) => {
     const diffInSeconds = moment().diff(moment(date), "seconds");
@@ -96,6 +96,7 @@ function RightMessage({ item, roomId }) {
                   data: {
                     message_id: item.id,
                     username,
+                    user_id,
                     emoji,
                   },
                 });

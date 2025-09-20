@@ -15,7 +15,7 @@ function LeftMessage({ item, roomId }) {
   const [ref, isVisible] = useOnScreen({
     threshold: 0.1,
   });
-  const { username } = usePresence();
+  const { user_id, username } = usePresence();
   
   useEffect(() => {
     if(isVisible && !item.readBy.includes(username)) {
@@ -25,6 +25,7 @@ function LeftMessage({ item, roomId }) {
         data: {
           message_id: item.id,
           username,
+          user_id,
         },
       });
     }
@@ -112,6 +113,7 @@ function LeftMessage({ item, roomId }) {
                   data: {
                     message_id: item.id,
                     username,
+                    user_id,
                     emoji,
                   },
                 });

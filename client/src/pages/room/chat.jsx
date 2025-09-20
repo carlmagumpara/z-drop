@@ -16,7 +16,7 @@ import LeftMessage from './left-message';
 
 function Chat({ roomId = '' }) {
   const sounds = useSound();
-  const { username } = usePresence();
+  const { user_id, username } = usePresence();
   const {
     messages, 
     setMessages,
@@ -186,6 +186,7 @@ function Chat({ roomId = '' }) {
       data: {
         ...values,
         id: uuidv4(),
+        user_id,
         username,
         readBy: [],
         reactions: [],
@@ -372,6 +373,7 @@ function Chat({ roomId = '' }) {
                           data: {
                             system: false,
                             username,
+                            user_id,
                           },      
                         });
                         setFieldValue('message', event.target.value);
