@@ -436,6 +436,7 @@ function Room() {
           {positions.map((p, i) => (
             <div
               key={i}
+              id={p.user_id}
               style={{
                 position: "absolute",
                 left: p.x,

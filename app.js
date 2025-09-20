@@ -154,20 +154,21 @@ io.on('connection', (socket) => {
 
       if (index !== -1) {
         const updated = JSON.parse(messages[index]);
-
         const reactions = updated.reactions ?? [];
-        const username = data.username;
-        const emoji = data.emoji;
 
-        const updatedReactions = reactions.map(r =>
-          r[0] === username ? [username, emoji] : r
-        );
-
-        if (!reactions.some(r => r[0] === username)) {
-          updatedReactions.push([username, emoji]);
+        if(!reactions.some(item => item.user_id === data.user_id)) {
+          updated.reactions = [
+            ...reactions, 
+            data
+          ];
+        } else {
+          const react = reactions.find(item => item.user_id === data.user_id);
+          if(react.emoji === data.emoji) {
+            updated.reactions = reactions.filter(item => item.user_id !== data.user_id);
+          } else {
+            updated.reactions = reactions.map(item => item.user_id === data.user_id ? data : item);
+          }
         }
-
-        updated.reactions = updatedReactions;
 
         await client.lSet(
           `chat:messages-${roomId}`, 

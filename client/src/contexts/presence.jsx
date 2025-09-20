@@ -55,8 +55,6 @@ function PresenceProvider({ children }) {
     };
 
     const onTotalUsers = (value) => {
-      console.log("total_users", value);
-
       setAnalytics(prevState => ({
         ...prevState,
         users: value ?? 0,
@@ -64,8 +62,6 @@ function PresenceProvider({ children }) {
     };
 
     const onTotalFiles = (value) => {
-      console.log("total_files", value);
-
       setAnalytics(prevState => ({
         ...prevState,
         files: value ?? 0,
