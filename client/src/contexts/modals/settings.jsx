@@ -10,7 +10,7 @@ import Avatar from 'boring-avatars';
 
 function Settings({ formValues = {} }) {
   const { show, handleClose } = useGlobalModal();
-  const { username, setUserName, auto_dowload, setAutoDownload } = usePresence();
+  const { user_id, username, setUserName, auto_dowload, setAutoDownload } = usePresence();
 
   const onSubmit = async (values, { setSubmitting, setErrors }) => {
     localStorage.setItem("username", values.username);
@@ -23,6 +23,7 @@ function Settings({ formValues = {} }) {
     <>
       <Formik
         initialValues={{
+          user_id,
           username,
           auto_dowload
         }}

@@ -55,11 +55,11 @@ function Room() {
         let placed = [...prevPositions];
 
         placed = placed.filter((p) =>
-          users.some((u) => u[1] === p.id)
+          users.some((u) => u[0] === p.user_id)
         );
 
-        users.forEach(([username, id]) => {
-          if (placed.find((p) => p.id === id)) return;
+        users.forEach(([user_id, username, socket_id]) => {
+          if (placed.find((p) => p.user_id === user_id)) return;
 
           let tries = 0;
           let x, y, overlap;
@@ -82,7 +82,13 @@ function Room() {
           } while (overlap && tries < maxTries);
 
           if (!overlap) {
-            placed.push({ id, username, x, y });
+            placed.push({ 
+              user_id,
+              username, 
+              socket_id,
+              x, 
+              y 
+            });
           }
         });
 
@@ -440,18 +446,18 @@ function Room() {
               }}
               className="animate__animated animate__pulse animate__infinite"
               onClick={event => {
-                if(p.username === username) {
+                if(p.user_id === user_id) {
                   sounds.pop?.play();
                   return;
                 }
 
-                if(targetId.current !== p.id) {
-                  startConnection(p.id);  
+                if(targetId.current !== p.socket_id) {
+                  startConnection(p.socket_id);  
                 } else {
                   // New Connection
                   pc.current?.close();
                   pc.current = null;
-                  startConnection(p.id);
+                  startConnection(p.socket_id);
                 }
 
                 fileInputRef.current.click();
@@ -465,7 +471,7 @@ function Room() {
                   size={size}
                   variant="beam"
                 />
-                <p className="text-center small">{p.username === username ? 'You' : username}</p>
+                <p className="text-center small">{p.user_id === user_id ? 'You' : username}</p>
               </div>
             </div>
           ))}
