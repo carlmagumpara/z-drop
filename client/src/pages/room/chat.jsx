@@ -330,9 +330,12 @@ function Chat({ roomId = '' }) {
                           cursor: 'pointer'
                         }}
                         bg="primary"
-                        onClick={() => bottomRef.current?.scrollIntoView({ 
-                          behavior: "smooth" 
-                        })}
+                        onClick={() => {
+                          setUnread(0);
+                          bottomRef.current?.scrollIntoView({ 
+                            behavior: "smooth" 
+                          })
+                        }}
                       >
                         {`You have ${unread} new message(s)`}
                       </Badge>
