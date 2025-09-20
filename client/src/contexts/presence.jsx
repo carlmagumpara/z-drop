@@ -43,14 +43,26 @@ function PresenceProvider({ children }) {
       setUsers(value);
     };
 
+    const onTotalUsers = (value) => {
+      console.log("total_users", value);
+    };
+
+    const onTotalFiles = (value) => {
+      console.log("total_files", value);
+    };
+
     socket.on('connect', onConnect);
     socket.on('disconnect', onDisconnect);
     socket.on('update_users', onUpdateUsers);
+    socket.on('total_users', onTotalUsers);
+    socket.on('total_files', onTotalFiles);
 
     return () => {
       socket.off('connect', onConnect);
       socket.off('disconnect', onDisconnect);
       socket.off('update_users', onUpdateUsers);
+      socket.off('total_users', onTotalUsers);
+      socket.off('total_files', onTotalFiles);
     };
   }, [username]);
 

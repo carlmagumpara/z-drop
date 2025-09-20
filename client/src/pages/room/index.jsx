@@ -23,7 +23,7 @@ function Room() {
   const { handleShow } = useGlobalModal();
   const messageApi = useMessage();
   const { username } = usePresence();
-  const { chat, unread, messages, showChat, hideChat } = useChat();
+  const { chat, unread, toogleChat, offcanvasswidth } = useChat();
   const [users, setUsers] = useState([]);
   const [receiving, setReceiving] = useState([]);
   const [sending, setSending] = useState([]);
@@ -180,6 +180,10 @@ function Room() {
             }));
             received = [];
             sounds.messagenotification?.play();
+
+            socket.emit("files-counter", { 
+              status: 'success',
+            });
           }
         } else {
           received.push(msg.data);
@@ -326,7 +330,7 @@ function Room() {
       socket.off("left");
       socket.off("room-users");
     };
-  }, [username, messages]);
+  }, [username]);
 
   return (
     <>
@@ -369,7 +373,7 @@ function Room() {
         <div
           className="position-absolute d-flex justify-content-between align-items-center gap-3"
           style={{
-            right: 15,
+            right: 15 + offcanvasswidth,
             bottom: 15,
             zIndex: 999
           }}
@@ -386,22 +390,24 @@ function Room() {
           <Button
             size="lg"
             variant="light"
-            onClick={showChat}
+            onClick={toogleChat}
           >
             <IoMdChatboxes />
-            <Badge
-              bg="danger"
-              className="position-absolute d-flex justify-content-center align-items-center"
-              style={{
-                right: -10,
-                width: 30,
-                height: 30,
-                top: -15,
-                borderRadius: 30,
-              }}
-            >
-              {unread}
-            </Badge>
+            {!chat ? (
+              <Badge
+                bg="danger"
+                className="position-absolute d-flex justify-content-center align-items-center"
+                style={{
+                  right: -10,
+                  width: 30,
+                  height: 30,
+                  top: -15,
+                  borderRadius: 30,
+                }}
+              >
+                {unread}
+              </Badge>
+            ) : null}
           </Button>
         </div>
         <div
@@ -421,7 +427,7 @@ function Room() {
                 left: p.x,
                 top: p.y,
               }}
-              className={`animate__animated ${p.username === username ? `animate__bounceIn` : `animate__heartBeat animate__infinite`}`}
+              className="animate__animated animate__pulse animate__infinite"
               onClick={event => {
                 if(p.username === username) {
                   sounds.pop?.play();
@@ -460,7 +466,9 @@ function Room() {
             type="file"
             onChange={(e) => {
               const file = e.target.files?.[0];
-              if (file) sendFile(file);
+              if (file) {
+                sendFile(file);
+              }
             }}
           />
         </Form.Group>

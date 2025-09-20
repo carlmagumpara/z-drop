@@ -21,7 +21,7 @@ function Navigation() {
         <Navbar.Brand 
           as={Link} 
           to={`/`} 
-          className="cursor-pointer"
+          className="cursor-pointer d-flex justify-content-center align-items-center gap-2"
         >
           <Image 
             className="" 
@@ -31,6 +31,7 @@ function Navigation() {
               width: 40
             }}
           />
+          <span>zDrop</span>
         </Navbar.Brand>
         <Navbar.Toggle aria-controls="basic-navbar-nav" />
         <Navbar.Collapse id="basic-navbar-nav">

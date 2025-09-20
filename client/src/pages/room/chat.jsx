@@ -29,8 +29,7 @@ function Chat({ roomId = '' }) {
     emoji, 
     setEmoji,
     chat,
-    showChat, 
-    hideChat,
+    toogleChat,
     setOffCanvasWidth
   } = useChat();
   const [isBottom, setIsBottom] = useState(false);
@@ -46,9 +45,11 @@ function Chat({ roomId = '' }) {
         bottomRef.current?.scrollIntoView({ 
           behavior: "auto" 
         });
-      }, 0);
 
-      console.log(offcanvasRef.current);
+        setOffCanvasWidth(offcanvasRef.current?.dialog?.clientWidth);
+      }, 0);
+    } else {
+      setOffCanvasWidth(0);
     }
   }, [chat]);
 
@@ -198,11 +199,11 @@ function Chat({ roomId = '' }) {
 
   return (
     <Offcanvas 
-      ref={offcanvasRef}
       show={chat} 
-      onHide={hideChat}
+      onHide={toogleChat}
       placement="end"
       backdrop={false}
+      ref={offcanvasRef}
     >
       <Offcanvas.Header closeButton>
         <Offcanvas.Title>

@@ -19,13 +19,6 @@ function ChatProvider({ children }) {
     }
   }, [chat]);
 
-  const showChat = () => setShow(true);
-
-  const hideChat = () => {
-    setOffCanvasWidth(0);
-    setShow(false);
-  };
-
   const mergeConsecutiveSystemMessages = (data) => {
     const result = [];
     let buffer = [];
@@ -99,6 +92,8 @@ function ChatProvider({ children }) {
       return mergeConsecutiveSystemMessages(data);
   };
 
+  const toogleChat = () => setShow(!chat);
+
   return (
     <Context.Provider
       value={{
@@ -113,8 +108,9 @@ function ChatProvider({ children }) {
         emoji, 
         setEmoji,
         chat,
-        showChat, 
-        hideChat
+        toogleChat,
+        offcanvasswidth,
+        setOffCanvasWidth
       }}
     >
       {children}

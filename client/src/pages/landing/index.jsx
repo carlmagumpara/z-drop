@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router';
 import { Container, Button } from 'react-bootstrap';
 import { IoHeart } from 'react-icons/io5';
 import { v4 as uuidv4 } from 'uuid';
+import CountUp from 'react-countup';
+import { usePresence } from '@/contexts/presence';
 
 const imageModules = import.meta.glob('@/assets/formats/*.{png,jpg,jpeg,gif,svg}', { 
   eager: true, 
@@ -12,28 +14,42 @@ const imageUrls = Object.values(imageModules);
 
 function Landing() {
   const navigate = useNavigate();
+  const { users } = usePresence();
   const [items, setItems] = useState([]);
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+
+  const generated = () => {
+    return Array.from({ length: imageUrls.length }, (_, index) => {
+      const top = `${Math.random() * 90}`;
+      const left = `${Math.random() * 90}`;
+
+      return {
+        top,
+        left,
+        originalTop: top,
+        originalLeft: left,
+        src: imageUrls[index],
+        duration: `${4 + Math.random() * 4}s`
+      }
+    });
+  };
 
   useEffect(() => {
-    const generated = Array.from({ length: imageUrls.length }, () => ({
-      src: imageUrls[Math.floor(Math.random() * imageUrls.length)],
-      top: `${Math.random() * 90}`,
-      left: `${Math.random() * 90}`,
-      duration: `${4 + Math.random() * 4}s`
-    }));
+    setItems(generated());
+  }, []);  
 
-    setItems(generated);
-
-    const onMouseMove = (event) => setMousePosition({
-      x: event.clientX,
-      y: event.clientY,
-    });
+  useEffect(() => {
+    const onMouseMove = (event) => {
+      setItems(prevState => prevState.map(item => ({
+        ...item,
+        top: parseFloat(item.originalTop) + (event.clientX / 1000),
+        left: parseFloat(items.originalLeft) + (event.clientX / 1000),
+      })));
+    };
 
     window.addEventListener('mousemove', onMouseMove);
 
     return () => window.removeEventListener('mousemove', onMouseMove);
-  }, []);
+  }, [items]);  
 
   return (
     <div className="radar-container">
@@ -56,11 +72,41 @@ function Landing() {
                 No limits, No delays — Share and Talk instantly!
               </h3>
               <Button
-                size="lg"                
+                size="lg"
+                className="mb-5"      
                 onClick={() => navigate(`/r/${uuidv4()}`)}
               >
                 Start Transferring Files
               </Button>
+              <div className="d-flex justify-content-center align-items-center gap-3">
+                <div>
+                  <p>Total Files Sent</p>
+                  <h4>
+                    <CountUp
+                      start={0}
+                      end={100} 
+                    />
+                  </h4>
+                </div>
+                <div>
+                  <p>Total Users</p>
+                  <h4>
+                    <CountUp
+                      start={0}
+                      end={users.length} 
+                    />
+                  </h4>
+                </div>
+                <div>
+                  <p>Online Now</p>
+                  <h4>
+                    <CountUp
+                      start={0}
+                      end={users.length} 
+                    />
+                  </h4>
+                </div>
+              </div>
             </div>
           </div>
         </div>
