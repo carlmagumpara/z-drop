@@ -48,6 +48,8 @@ function Chat({ roomId = '' }) {
 
         setOffCanvasWidth(offcanvasRef.current?.dialog?.clientWidth);
       }, 0);
+
+      console.log('messages', messages);
     } else {
       setOffCanvasWidth(0);
     }

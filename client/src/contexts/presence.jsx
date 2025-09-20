@@ -87,8 +87,6 @@ function PresenceProvider({ children }) {
     };
   }, [user_id, username]);
 
-  console.log('analytics', analytics);
-
   if(!username || !user_id) {
     return <Loading />;
   }
