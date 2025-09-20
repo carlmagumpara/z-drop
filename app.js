@@ -10,10 +10,26 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const client = createClient({ 
-  url: 'rediss://red-d361o3umcj7s73abuvmg:W9sA7l54Rhnuh3burt7TAafEaVUReEPk@oregon-keyvalue.render.com:6379' 
+  url: 'rediss://red-d361o3umcj7s73abuvmg:W9sA7l54Rhnuh3burt7TAafEaVUReEPk@oregon-keyvalue.render.com:6379',
+  socket: {
+    reconnectStrategy: (retries) => {
+      if (retries > 10) {
+        console.error('Too many retries. Giving up.');
+        return new Error('Retry limit reached');
+      }
+
+      console.log(`Reconnecting attempt #${retries}...`);
+
+      return Math.min(retries * 100, 3000);
+    }
+  }
 });
 
 client.on('error', (err) => console.log('Redis Client Error', err));
+client.on('reconnecting', () => console.log('Redis client is reconnecting...'));
+client.on('ready', () => console.log('Redis client is ready.'));
+client.on('end', () => console.log('Redis client is end.'));
+
 client.connect();
 
 const corsConfig = {
