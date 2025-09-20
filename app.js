@@ -69,7 +69,7 @@ io.on('connection', (socket) => {
     onlineUsers.set(userId, socket.id);
     console.log(`${userId} is online`);
     await client.sAdd("users", userId); 
-    const users = await client.sMembers(key);
+    const users = await client.sMembers("users");
 
     io.emit("total_users", users);
     io.emit("update_users", Array.from(onlineUsers.keys()));
