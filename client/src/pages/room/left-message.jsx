@@ -5,7 +5,7 @@ import moment from 'moment';
 import Picker from 'emoji-picker-react';
 import useOnScreen from '@/hooks/use-on-screen';
 import { usePresence } from '@/contexts/presence';
-import { socket } from '../../socket';
+import { socket } from '@/shared/socket';
 import useSound from './sounds';
 import AddReaction from '@/assets/add-reaction.png';
 

@@ -1,5 +1,3 @@
-import 'animate.css';
-import '@/radar.scss'
 import { useEffect, useState, useRef, lazy, Suspense } from 'react';
 import { useParams, useSearchParams } from 'react-router';
 import { Container, Row, Col, Form, Button, InputGroup, ToastContainer, Badge } from 'react-bootstrap';
@@ -7,7 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import Avatar from 'boring-avatars';
 import { FaQrcode } from 'react-icons/fa';
 import { IoMdChatboxes } from 'react-icons/io';
-import { socket } from '../../socket';
+import { socket } from '@/shared/socket';
 import { usePresence } from '@/contexts/presence';
 import { useMessage } from '@/contexts/message';
 import { useGlobalModal, MODAL_TYPES } from '@/contexts/global-modal';

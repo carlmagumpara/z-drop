@@ -5,7 +5,7 @@ import { Formik } from 'formik';
 import * as Yup from 'yup';
 import { useGlobalModal, MODAL_TYPES } from '../global-modal';
 import { usePresence } from '@/contexts/presence';
-import { generateName } from '../../names';
+import { generateName } from '@/shared/names';
 import Avatar from 'boring-avatars';
 
 function Settings({ formValues = {} }) {

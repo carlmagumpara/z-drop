@@ -1,4 +1,3 @@
-import '@/chat.scss';
 import { Fragment, useEffect, useState, useRef } from 'react';
 import { Form, InputGroup, Button, OverlayTrigger, Offcanvas, Badge } from 'react-bootstrap';
 import Avatar from 'boring-avatars';
@@ -7,7 +6,7 @@ import { Formik } from 'formik';
 import * as Yup from 'yup';
 import { IoMdSend } from 'react-icons/io';
 import EmojiPicker from 'emoji-picker-react';
-import { socket } from '../../socket';
+import { socket } from '@/shared/socket';
 import { usePresence } from '@/contexts/presence';
 import { useChat } from './chat-context';
 import useSound from './sounds';
@@ -31,13 +30,15 @@ function Chat({ roomId = '' }) {
     setEmoji,
     chat,
     showChat, 
-    hideChat
+    hideChat,
+    setOffCanvasWidth
   } = useChat();
   const [isBottom, setIsBottom] = useState(false);
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
   const typingRef = useRef(null);
   const chatMessagesRef = useRef(null);
+  const offcanvasRef = useRef(null);
 
   useEffect(() => {
     if(chat) {
@@ -46,6 +47,8 @@ function Chat({ roomId = '' }) {
           behavior: "auto" 
         });
       }, 0);
+
+      console.log(offcanvasRef.current);
     }
   }, [chat]);
 
@@ -195,6 +198,7 @@ function Chat({ roomId = '' }) {
 
   return (
     <Offcanvas 
+      ref={offcanvasRef}
       show={chat} 
       onHide={hideChat}
       placement="end"

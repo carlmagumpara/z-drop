@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { socket } from '../socket';
-import { generateName } from '../names';
+import { socket } from '@/shared/socket';
+import { generateName } from '@/shared/names';
 
 const PresenceContext = createContext();
 

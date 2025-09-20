@@ -29,7 +29,5 @@ export default function useSound() {
     };
   }, [hasInteracted]);
 
-  console.log(sounds.current);
-
   return sounds.current;
 }

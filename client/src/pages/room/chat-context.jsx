@@ -10,6 +10,7 @@ function ChatProvider({ children }) {
   const [typing, setTyping] = useState([]);
   const [chat, setShow] = useState(false);
   const [cursorPosition, setCursorPosition] = useState(0);
+  const [offcanvasswidth, setOffCanvasWidth] = useState(0);
   const [emoji, setEmoji] = useState(false);
 
   useEffect(() => {
@@ -20,7 +21,10 @@ function ChatProvider({ children }) {
 
   const showChat = () => setShow(true);
 
-  const hideChat = () => setShow(false);
+  const hideChat = () => {
+    setOffCanvasWidth(0);
+    setShow(false);
+  };
 
   const mergeConsecutiveSystemMessages = (data) => {
     const result = [];

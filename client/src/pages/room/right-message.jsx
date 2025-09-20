@@ -4,7 +4,7 @@ import Avatar from 'boring-avatars';
 import moment from 'moment';
 import Picker from 'emoji-picker-react';
 import { usePresence } from '@/contexts/presence';
-import { socket } from '../../socket';
+import { socket } from '@/shared/socket';
 import useSound from './sounds';;
 import AddReaction from '@/assets/add-reaction.png';
 

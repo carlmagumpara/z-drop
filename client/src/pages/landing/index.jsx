@@ -1,5 +1,3 @@
-import 'animate.css';
-import '../../radar.scss'
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { Container, Button } from 'react-bootstrap';
