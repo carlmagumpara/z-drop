@@ -3,10 +3,11 @@ import '../../radar.scss'
 
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useSearchParams } from 'react-router';
-import { Container, Row, Col, Form, Button, InputGroup, ToastContainer } from 'react-bootstrap';
+import { Container, Row, Col, Form, Button, InputGroup, ToastContainer, Badge } from 'react-bootstrap';
 import { v4 as uuidv4 } from 'uuid';
 import Avatar from 'boring-avatars';
 import { FaQrcode } from 'react-icons/fa';
+import { IoMdChatboxes } from 'react-icons/io';
 import { socket } from '../../socket';
 import { usePresence } from '@/contexts/presence';
 import { useMessage } from '@/contexts/message';
@@ -27,7 +28,7 @@ function Room() {
   const { handleShow } = useGlobalModal();
   const messageApi = useMessage();
   const { username } = usePresence();
-  const { unread, messages } = useChat();
+  const { chat, unread, messages, showChat, hideChat } = useChat();
   const [users, setUsers] = useState([]);
   const [receiving, setReceiving] = useState([]);
   const [sending, setSending] = useState([]);
@@ -112,6 +113,7 @@ function Room() {
 
   useEffect(() => {
     pc.current = new RTCPeerConnection(iceConfig);
+    
     channel.current = pc.current.createDataChannel("sendDataChannel");
     channel.current.binaryType = 'arraybuffer';
 
@@ -335,130 +337,142 @@ function Room() {
   }, [username, messages]);
 
   return (
-    <Container 
-      fluid
-      className="px-0"
-    >
-      <Row
-        className="g-0"
-      >
-        <Col
-          md={9}
+    <>
+      <div className="radar vh-100 w-100 position-relative">
+        <ToastContainer 
+          className="position-fixed"
+          style={{
+            bottom: 15,
+            left: 15,
+            zIndex: 999
+          }}
         >
-          <div className="radar vh-100 w-100 position-relative">
-            <ToastContainer 
-              className="position-fixed"
-              style={{
-                bottom: 15,
-                left: 15,
-                zIndex: 999
-              }}
-            >
-              <CustomToast
-                title={`Receiving Files (${receiving.length})`}
-                visibility={false}
-              >
-                {visibility => (
-                  <FileList
-                    files={receiving}
-                    download={true}
-                  />
-                )}
-              </CustomToast>
-              <CustomToast
-                title={`Sending Files (${sending.length})`}
-                visibility={false}
-              >
-                {visibility => (
-                  <FileList
-                    files={sending}
-                    download={false}
-                  />
-                )}
-              </CustomToast>
-            </ToastContainer>
-            <Button
-              variant="light"
-              className="mb-2 position-absolute"
-              onClick={() => handleShow(MODAL_TYPES.QR_CODE, {
-                url: `${window.location.href}?modal=false`
-              })}
-              style={{
-                right: 15,
-                bottom: 15,
-                zIndex: 999
-              }}
-            >
-              <FaQrcode />
-            </Button>
-            <div
-              style={{
-                width: "100%",
-                height: "100vh",
-                position: "relative",
-                overflow: "hidden",
-              }}
-            >
-              <p className="text-center" style={{ marginTop: 100 }}>Click the avatar of the user you want to send a file to.</p>
-              {positions.map((p, i) => (
-                <div
-                  key={i}
-                  style={{
-                    position: "absolute",
-                    left: p.x,
-                    top: p.y,
-                  }}
-                  className={`animate__animated ${p.username === username ? `animate__bounceIn` : `animate__heartBeat animate__infinite`}`}
-                  onClick={event => {
-                    if(p.username === username) {
-                      playPopSfx();
-                      return;
-                    }
-
-                    if(targetId.current !== p.id) {
-                      startConnection(p.id);  
-                    }
-
-                    // startConnection(p.id);
-                    fileInputRef.current.click();
-                  }}
-                >
-                  <div
-                    className="d-flex flex-column align-items-center gap-1"
-                  >
-                    <Avatar
-                      name={p.username}
-                      size={size}
-                      variant="beam"
-                    />
-                    <p className="text-center small">{p.username === username ? 'You' : username}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <Form.Group className="mb-3 d-none">
-              <Form.Label>Select File</Form.Label>
-              <Form.Control
-                ref={fileInputRef}
-                type="file"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) sendFile(file);
-                }}
+          <CustomToast
+            title={`Receiving Files (${receiving.length})`}
+            visibility={false}
+          >
+            {visibility => (
+              <FileList
+                files={receiving}
+                download={true}
               />
-            </Form.Group>
-          </div>
-        </Col>
-        <Col
-          md={3}
+            )}
+          </CustomToast>
+          <CustomToast
+            title={`Sending Files (${sending.length})`}
+            visibility={false}
+          >
+            {visibility => (
+              <FileList
+                files={sending}
+                download={false}
+              />
+            )}
+          </CustomToast>
+        </ToastContainer>
+        <div
+          className="position-absolute d-flex justify-content-between align-items-center gap-3"
+          style={{
+            right: 15,
+            bottom: 15,
+            zIndex: 999
+          }}
         >
-          <Chat
-            visibility={true}
-            roomId={roomId}
+          <Button
+            size="lg"
+            variant="light"
+            onClick={() => handleShow(MODAL_TYPES.QR_CODE, {
+              url: `${window.location.href}?modal=false`
+            })}
+          >
+            <FaQrcode />
+          </Button>
+          <Button
+            size="lg"
+            variant="light"
+            onClick={showChat}
+          >
+            <IoMdChatboxes />
+            <Badge
+              bg="danger"
+              className="position-absolute d-flex justify-content-center align-items-center"
+              style={{
+                right: -10,
+                width: 30,
+                height: 30,
+                top: -15,
+                borderRadius: 30,
+              }}
+            >
+              {unread}
+            </Badge>
+          </Button>
+        </div>
+        <div
+          style={{
+            width: "100%",
+            height: "100vh",
+            position: "relative",
+            overflow: "hidden",
+          }}
+        >
+          <p className="text-center" style={{ marginTop: 100 }}>Click the avatar of the user you want to send a file to.</p>
+          {positions.map((p, i) => (
+            <div
+              key={i}
+              style={{
+                position: "absolute",
+                left: p.x,
+                top: p.y,
+              }}
+              className={`animate__animated ${p.username === username ? `animate__bounceIn` : `animate__heartBeat animate__infinite`}`}
+              onClick={event => {
+                if(p.username === username) {
+                  playPopSfx();
+                  return;
+                }
+
+                if(targetId.current !== p.id) {
+                  startConnection(p.id);  
+                } else {
+                  // New Connection
+                  pc.current?.close();
+                  pc.current = null;
+                  startConnection(p.id);
+                }
+
+                fileInputRef.current.click();
+              }}
+            >
+              <div
+                className="d-flex flex-column align-items-center gap-1"
+              >
+                <Avatar
+                  name={p.username}
+                  size={size}
+                  variant="beam"
+                />
+                <p className="text-center small">{p.username === username ? 'You' : username}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+        <Form.Group className="mb-3 d-none">
+          <Form.Label>Select File</Form.Label>
+          <Form.Control
+            ref={fileInputRef}
+            type="file"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) sendFile(file);
+            }}
           />
-        </Col>
-      </Row>
-    </Container>
+        </Form.Group>
+      </div>
+      <Chat
+        roomId={roomId}
+      />
+    </>
   );
 }
 
@@ -467,7 +481,9 @@ function Index() {
 
   return (
     <ChatProvider>
-      <Room key={username} />
+      <Room 
+        key={username} 
+      />
     </ChatProvider>
   )
 }

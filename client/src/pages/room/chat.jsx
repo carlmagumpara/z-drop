@@ -1,6 +1,6 @@
 import '../../chat.scss';
 import { Fragment, useEffect, useState, useRef } from 'react';
-import { Form, InputGroup, Button, OverlayTrigger, Popover } from 'react-bootstrap';
+import { Form, InputGroup, Button, OverlayTrigger, Offcanvas, Badge } from 'react-bootstrap';
 import Avatar from 'boring-avatars';
 import moment from 'moment';
 import { Formik } from 'formik';
@@ -17,100 +17,56 @@ import { v4 as uuidv4 } from 'uuid';
 import RightMessage from './right-message';
 import LeftMessage from './left-message';
 
-const mergeConsecutiveSystemMessages = (data) => {
-  const result = [];
-  let buffer = [];
-
-  const flushBuffer = () => {
-    if (buffer.length === 0) return;
-    const [first, ...rest] = buffer;
-    result.push({
-      id: first.id,
-      system: true,
-      messages: buffer.map(m => m.message),
-      dateTime: first.dateTime || null
-    });
-    buffer = [];
-  };
-
-  for (const item of data) {
-    if (item.system) {
-      buffer.push(item);
-    } else {
-      flushBuffer();
-      result.push(item);
-    }
-  }
-
-  flushBuffer();
-  return result;
-};
-
-function formatMessages(messages) {
-  const seenPerSender = {};
-
-  const data = messages
-    .slice()
-    .reverse()
-    .map(msg => {
-      if (msg.system) {
-        return { 
-          ...msg, 
-          showReaders: [] 
-        };
-      }
-
-      const sender = msg.username;
-      if (!seenPerSender[sender]) {
-        seenPerSender[sender] = new Set();
-      }
-
-      const readers = (msg.readBy || []).filter(
-        r => !seenPerSender[sender].has(r)
-      );
-
-      readers.forEach(r => seenPerSender[sender].add(r));
-
-      const reactions = Object.values(
-        msg.reactions.reduce((acc, [_, emoji]) => {
-          acc[emoji] = acc[emoji] || [emoji, 0];
-          acc[emoji][1]++;
-          return acc;
-        }, {})
-      );
-
-      return { 
-        ...msg, 
-        showReaders: readers,
-        showReactions: reactions,
-      };
-    })
-    .reverse();
-
-    return mergeConsecutiveSystemMessages(data);
-}
-
-function Chat({ roomId = '', visibility }) {
+function Chat({ roomId = '' }) {
   const [playPopSfx] = useSound(popSfx);
   const [playBubbleSfx] = useSound(bubbleSfx);
   const [playMessageSfx] = useSound(messageSfx);
   const { username } = usePresence();
-  const { messages, setMessages, typing, setTyping, setUnread } = useChat();
-  const [cursorPosition, setCursorPosition] = useState(0);
-  const [emoji, setEmoji] = useState(false);
+  const {
+    messages, 
+    setMessages,
+    typing, 
+    setTyping,
+    unread, 
+    setUnread,
+    cursorPosition, 
+    setCursorPosition,
+    emoji, 
+    setEmoji,
+    chat,
+    showChat, 
+    hideChat
+  } = useChat();
+  const [isBottom, setIsBottom] = useState(false);
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
   const typingRef = useRef(null);
+  const chatMessagesRef = useRef(null);
 
   useEffect(() => {
-    if(visibility) {
-      setUnread(0);
+    if(chat) {
+      setTimeout(() => {
+        bottomRef.current?.scrollIntoView({ 
+          behavior: "auto" 
+        });
+      }, 0);
     }
+  }, [chat]);
 
-    bottomRef.current?.scrollIntoView({ 
-      behavior: "auto" 
-    });
-  }, [messages.length, visibility]);
+  useEffect(() => {
+    const handleScroll = () => {
+      const isAtBottom = chatMessagesRef.current?.scrollHeight - (chatMessagesRef.current?.scrollTop + chatMessagesRef.current?.clientHeight) <= 15;
+
+      if(isAtBottom) {
+        setUnread(0);
+      }
+      setIsBottom(isAtBottom);
+    };
+
+     chatMessagesRef.current?.addEventListener("scroll", handleScroll);
+
+    return () => chatMessagesRef.current?.removeEventListener("scroll", handleScroll);
+  }, []);
 
   useEffect(() => {
     socket.on("message", (data) => {
@@ -122,14 +78,17 @@ function Chat({ roomId = '', visibility }) {
           ]);
           if(data.data.username !== username) {
             playPopSfx();
-            if(!visibility) {
+            if(!chat || !isBottom) {
               setUnread(prevState => prevState + 1);
             }
           } else {
+            setTimeout(() => {
+              bottomRef.current?.scrollIntoView({ 
+                behavior: "smooth" 
+              });
+            }, 100);
             playMessageSfx();
           }
-
-          bottomRef.current?.scrollIntoView({ behavior: "smooth" });
           break;
         case 'typing':
           if(data.data.username !== username) {
@@ -182,7 +141,10 @@ function Chat({ roomId = '', visibility }) {
                 updatedReactions.push([username, emoji]);
               }
 
-              return { ...item, reactions: updatedReactions };
+              return { 
+                ...item, 
+                reactions: updatedReactions 
+              };
             })
           );
           break;
@@ -199,7 +161,7 @@ function Chat({ roomId = '', visibility }) {
       socket.off("message");
       socket.off("chat-history");
     };
-  }, [visibility]);
+  }, [chat, isBottom]);
 
   const formatTyping = (users = []) => {
     if (users.length === 0) {
@@ -235,156 +197,208 @@ function Chat({ roomId = '', visibility }) {
     resetForm();
   };
 
-  console.log('formatMessages(messages)', formatMessages(messages));
-
   return (
-    <Formik
-      initialValues={{
-        message: ''
-      }}
-      validationSchema={Yup.object({
-        message: Yup.string().required('Required'),
-      })}
-      onSubmit={onSubmit}
+    <Offcanvas 
+      show={chat} 
+      onHide={hideChat}
+      placement="end"
+      backdrop={false}
     >
-     {({
-       values,
-       errors,
-       touched,
-       handleChange,
-       handleBlur,
-       handleSubmit,
-       isSubmitting,
-       setFieldValue
-     }) => (
-        <Form onSubmit={handleSubmit}>
-          {emoji ? (
-            <div
-              className="position-absolute"
-              style={{ 
-                bottom: 50 ,
-                zIndex: 999
-              }}
+      <Offcanvas.Header closeButton>
+        <Offcanvas.Title>
+          Chat
+        </Offcanvas.Title>
+      </Offcanvas.Header>
+      <Offcanvas.Body 
+        className="p-0 d-flex flex-column"
+      >
+        <Formik
+          initialValues={{
+            message: ''
+          }}
+          validationSchema={Yup.object({
+            message: Yup.string().required('Required'),
+          })}
+          onSubmit={onSubmit}
+        >
+         {({
+           values,
+           errors,
+           touched,
+           handleChange,
+           handleBlur,
+           handleSubmit,
+           isSubmitting,
+           setFieldValue
+         }) => (
+            <Form 
+              onSubmit={handleSubmit}
             >
-              <EmojiPicker 
-                width={350}
-                onEmojiClick={emojiObject => {
-                  const emoji = emojiObject.emoji;
-                  const start = values.message.substring(0, cursorPosition);
-                  const end = values.message.substring(cursorPosition);
-                  const newText = start + emoji + end;
-                  setFieldValue('message', newText);
-                  const newCursorPosition = cursorPosition + emoji.length;
-                  setCursorPosition(newCursorPosition);
-                  if (inputRef.current) {
-                    inputRef.current.focus();
-                    setTimeout(() => {
-                      inputRef.current.selectionStart = newCursorPosition;
-                      inputRef.current.selectionEnd = newCursorPosition;
-                    }, 0); 
-                  }
+              <div 
+                className="w-100 d-flex flex-column position-relative"
+                style={{
+                  height: 'calc(100vh - 70px)'
                 }}
-              />
-            </div>
-          ) : null}
-          <div 
-            className="w-100 vh-100 d-flex flex-column" 
-            style={{ paddingTop: 50 }}
-          >
-            <div className="flex-grow-1 chat-window overflow-y-auto">
-              <div className="messages p-3">
-                {formatMessages(messages).map(item => (
-                  <Fragment key={item.id}>
-                    {item.system ? (
-                      <>
-                        {item.messages.length === 1 ? (
-                          <p style={{ fontSize: 11 }} className="text-center text-secondary mb-0">
-                            {item.messages[0]}
-                          </p>
+              >
+                {emoji ? (
+                  <div
+                    className="position-absolute"
+                    style={{ 
+                      bottom: 50 ,
+                      zIndex: 999
+                    }}
+                  >
+                    <EmojiPicker 
+                      width={350}
+                      onEmojiClick={emojiObject => {
+                        const emoji = emojiObject.emoji;
+                        const start = values.message.substring(0, cursorPosition);
+                        const end = values.message.substring(cursorPosition);
+                        const newText = start + emoji + end;
+                        setFieldValue('message', newText);
+                        const newCursorPosition = cursorPosition + emoji.length;
+                        setCursorPosition(newCursorPosition);
+                        if (inputRef.current) {
+                          inputRef.current.focus();
+                          setTimeout(() => {
+                            inputRef.current.selectionStart = newCursorPosition;
+                            inputRef.current.selectionEnd = newCursorPosition;
+                          }, 0); 
+                        }
+                      }}
+                    />
+                  </div>
+                ) : null}
+                <div 
+                  ref={chatMessagesRef}
+                  className="flex-grow-1 chat-window overflow-y-auto"
+                  onClick={() => setEmoji(false)}
+                >
+                  <div 
+                    className="messages p-3"
+                  >
+                    {messages.map(item => (
+                      <Fragment key={item.id}>
+                        {item.system ? (
+                          <>
+                            {item.messages.length === 1 ? (
+                              <p style={{ fontSize: 11 }} className="text-center text-secondary mb-0">
+                                {item.messages[0]}
+                              </p>
+                            ) : (
+                            <details>
+                              <summary>View Updates</summary>
+                              {item.messages.map((message, index) => (
+                                <p 
+                                  key={index}
+                                  style={{ fontSize: 11 }} 
+                                  className="text-center text-secondary mb-0"
+                                >
+                                  {message}
+                                </p>
+                              ))}
+                            </details>
+                            )}
+                          </>
                         ) : (
-                        <details>
-                          <summary>View Updates</summary>
-                          {item.messages.map(message => (
-                            <p style={{ fontSize: 11 }} className="text-center text-secondary mb-0">
-                              {message}
-                            </p>
-                          ))}
-                        </details>
+                          <>
+                            {item.username === username ? (
+                              <RightMessage 
+                                item={item}
+                                roomId={roomId}
+                              />
+                            ) : (
+                              <LeftMessage 
+                                item={item}
+                                roomId={roomId}
+                              />
+                            )}
+                          </>
                         )}
-                      </>
-                    ) : (
-                      <>
-                        {item.username === username ? (
-                          <RightMessage 
-                            item={item}
-                            roomId={roomId}
-                          />
-                        ) : (
-                          <LeftMessage 
-                            item={item}
-                            roomId={roomId}
-                          />
-                        )}
-                      </>
-                    )}
-                  </Fragment>
-                ))}
-                <div ref={bottomRef} />
+                      </Fragment>
+                    ))}
+                    <div ref={bottomRef} />
+                  </div>
+                </div>
+                
+                {(!isBottom && unread !== 0) ? (
+                  <div className="position-relative w-100">
+                    <div
+                      className="position-absolute d-flex justify-content-center align-items-center w-100"
+                      style={{
+                        bottom: 30
+                      }}
+                    >
+                      <Badge 
+                        style={{
+                          cursor: 'pointer'
+                        }}
+                        bg="primary"
+                        onClick={() => bottomRef.current?.scrollIntoView({ 
+                          behavior: "smooth" 
+                        })}
+                      >
+                        {`You have ${unread} new message(s)`}
+                      </Badge>
+                    </div>
+                  </div>
+                ) : null}
+
+                {typing.length ? (
+                  <p 
+                    className="position-absolute small text-secondary" 
+                    style={{ left: 15, bottom: 30, zIndex: 999 }}
+                  >
+                    {formatTyping(typing)}
+                  </p>
+                ) : null}
+                <div className="flex-shrink-1 position-relative">
+                  <InputGroup>
+                    <Form.Control
+                      ref={inputRef}
+                      name="message"
+                      placeholder="Enter your message here..."
+                      className="rounded-0 border-0"
+                      autoComplete="off"
+                      spellCheck="false"
+                      value={values.message}
+                      onChange={event => {
+                        socket.emit("on-message", {
+                          roomId,
+                          type: 'typing',
+                          data: {
+                            system: false,
+                            username,
+                          },      
+                        });
+                        setFieldValue('message', event.target.value);
+                      }}
+                      onBlur={handleBlur}
+                      onSelect={event => setCursorPosition(event.target.selectionEnd)}
+                    />
+                    <Button
+                      variant="light"
+                      className="rounded-0 bg-white border-0"
+                      onClick={() => setEmoji(!emoji)}
+                    >
+                      😃
+                    </Button>
+                    <Button
+                      type="submit" 
+                      variant="danger"
+                      className="rounded-0"
+                      disabled={isSubmitting}
+                    >
+                      <IoMdSend />
+                    </Button>
+                  </InputGroup>
+                </div>
               </div>
-            </div>
-            <div className="flex-shrink-1 position-relative">
-              {typing.length ? (
-                <p 
-                  className="position-absolute small text-secondary" 
-                  style={{ left: 15, bottom: 30, zIndex: 999 }}
-                >
-                  {formatTyping(typing)}
-                </p>
-              ) : null}
-              <InputGroup>
-                <Form.Control
-                  ref={inputRef}
-                  name="message"
-                  placeholder="Enter your message here..."
-                  className="rounded-0 border-0"
-                  autoComplete="off"
-                  spellCheck="false"
-                  value={values.message}
-                  onChange={event => {
-                    socket.emit("on-message", {
-                      roomId,
-                      type: 'typing',
-                      data: {
-                        system: false,
-                        username,
-                      },      
-                    });
-                    setFieldValue('message', event.target.value);
-                  }}
-                  onBlur={handleBlur}
-                  onSelect={event => setCursorPosition(event.target.selectionEnd)}
-                />
-                <Button
-                  variant="light"
-                  className="rounded-0"
-                  onClick={() => setEmoji(!emoji)}
-                >
-                  😃
-                </Button>
-                <Button
-                  type="submit" 
-                  variant="light"
-                  className="rounded-0"
-                  disabled={isSubmitting}
-                >
-                  <IoMdSend />
-                </Button>
-              </InputGroup>
-            </div>
-          </div>
-        </Form>
-     )}
-    </Formik>
+            </Form>
+         )}
+        </Formik>
+      </Offcanvas.Body>
+    </Offcanvas>
   )
 }
 

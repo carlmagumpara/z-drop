@@ -17,9 +17,7 @@ function LeftMessage({ item, roomId }) {
     threshold: 0.1,
   });
   const { username } = usePresence();
-
-  console.log(item.showReactions);
-
+  
   useEffect(() => {
     if(isVisible && !item.readBy.includes(username)) {
       socket.emit("on-message", {

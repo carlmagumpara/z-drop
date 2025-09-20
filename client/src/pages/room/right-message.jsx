@@ -14,8 +14,6 @@ function RightMessage({ item, roomId }) {
   const [hover, setHover] = useState(false);
   const { username } = usePresence();
 
-  console.log(item.showReactions);
-
   const formatTime = (date) => {
     const diffInSeconds = moment().diff(moment(date), "seconds");
     if (diffInSeconds < 5) {
