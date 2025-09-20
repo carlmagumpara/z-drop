@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { Modal, Button, Form, InputGroup } from 'react-bootstrap';
+import { Modal, Button, Form } from 'react-bootstrap';
 import { FaRandom } from 'react-icons/fa';
 import { Formik } from 'formik';
 import * as Yup from 'yup';
 import { useGlobalModal, MODAL_TYPES } from '../global-modal';
 import { usePresence } from '@/contexts/presence';
 import { generateName } from '../../names';
+import Avatar from 'boring-avatars';
 
 function Settings({ formValues = {} }) {
   const { show, handleClose } = useGlobalModal();
@@ -61,29 +62,37 @@ function Settings({ formValues = {} }) {
               autoComplete="off"
             >
               <Modal.Body>
+                <div className="d-flex justify-content-center align-items-center">
+                  <Avatar
+                    name={values.username}
+                    size={200}
+                    variant="beam"
+                  />
+                </div>
                 <Form.Group className="mb-3">
                   <Form.Label>Username</Form.Label>
-                  <InputGroup>
-                    <Form.Control 
-                      name="username"
-                      placeholder="Username"
-                      value={values.username}
-                      onChange={handleChange}
-                      onBlur={handleBlur}
-                      className={errors.username && touched.username && 'is-invalid'}
-                    />
-                     {errors.username && touched.username && <Form.Control.Feedback type="invalid">{errors.username}</Form.Control.Feedback>}
-                    <Button 
-                      variant="outline-secondary"
-                      onClick={() => setFieldValue(
-                        'username', 
-                        `${generateName()}_${Math.floor(Math.random() * 1000)}`.replace(/ /g,"_")
-                      )}
-                    >
-                      <FaRandom />
-                    </Button>
-                  </InputGroup>
+                  <Form.Control 
+                    name="username"
+                    placeholder="Username"
+                    value={values.username}
+                    onChange={handleChange}
+                    onBlur={handleBlur}
+                    className={errors.username && touched.username && 'is-invalid'}
+                  />
+                  {errors.username && touched.username && <Form.Control.Feedback type="invalid">{errors.username}</Form.Control.Feedback>}
                 </Form.Group>
+                <div className="mb-3 d-flex justify-content-end align-items-center">
+                  <Button 
+                     size="sm"
+                    variant="outline-secondary"
+                    onClick={() => setFieldValue(
+                      'username', 
+                      `${generateName()}_${Math.floor(Math.random() * 1000)}`.replace(/ /g,"_")
+                    )}
+                  >
+                    <FaRandom /> Generate Name
+                  </Button>
+                </div>
                 <Form.Group className="mb-3">
                   <Form.Check
                     type="switch"

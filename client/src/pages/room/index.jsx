@@ -50,8 +50,9 @@ function Room() {
   useEffect(() => {
     const positionUsers = () => {
       const padding = 50; 
-      const parentWidth = window.innerWidth;
-      const parentHeight = window.innerHeight;
+      const radar = document.querySelector('.radar');      
+      const parentWidth = radar.clientWidth;
+      const parentHeight = radar.clientHeight;
       const availableWidth = parentWidth - padding * 2;
       const availableHeight = parentHeight - padding * 2;
       const startX = (parentWidth - availableWidth) / 2;
