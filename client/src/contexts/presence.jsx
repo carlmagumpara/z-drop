@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { socket } from '@/shared/socket';
 import { generateName } from '@/shared/names';
+import Loading from '@/shared/loading';
 
 const PresenceContext = createContext();
 
