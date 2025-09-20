@@ -4,6 +4,13 @@ import messageNotificationSfx from '@/assets/message-notification-190034.mp3';
 import bubbleSfx from '@/assets/bubble-254777.mp3';
 import messageSfx from '@/assets/message-envoye-iphone-apple-391098.mp3';
 
+// const soundModules = import.meta.glob('@/assets/sounds/*.{mp3, m4a}', { 
+//   eager: true, 
+//   as: 'url' 
+// });
+
+// console.log(soundModules);
+
 export {
   whoopSfx,
   popSfx,

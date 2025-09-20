@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Image } from 'react-bootstrap';
 import Avatar from 'boring-avatars';
 import moment from 'moment';
 import Picker from 'emoji-picker-react';
@@ -7,6 +8,7 @@ import { usePresence } from '@/contexts/presence';
 import { socket } from '../../socket';
 import { popSfx } from './sounds';
 import useSound from '@/hooks/use-sound';
+import AddReaction from '@/assets/add-reaction.png';
 
 function LeftMessage({ item, roomId }) {
   const [playPopSfx] = useSound(popSfx);
@@ -15,6 +17,8 @@ function LeftMessage({ item, roomId }) {
     threshold: 0.1,
   });
   const { username } = usePresence();
+
+  console.log(item.showReactions);
 
   useEffect(() => {
     if(isVisible && !item.readBy.includes(username)) {
@@ -28,8 +32,6 @@ function LeftMessage({ item, roomId }) {
       });
     }
   }, [isVisible]);
-
-  const truncate = (str, n = 10) => str.length > n ? str.slice(0, n) + "..." : str;
 
   const formatTime = (date) => {
     const diffInSeconds = moment().diff(moment(date), "seconds");
@@ -53,6 +55,43 @@ function LeftMessage({ item, roomId }) {
         />
       </div>
       <div>
+        <div 
+          className="bubble"
+        >
+          {item.message}
+          <div className="meta left">
+            {`${item.username} · ${formatTime(item.dateTime)}`}
+          </div>
+        </div>
+        <div className="d-flex justify-content-between align-items-center pt-1">
+          {item.showReaders.length ? (
+            <div className="d-flex justify-content-start align-items gap-1">
+              <span className="small">✓</span> {item.showReaders.map(reader => (
+                <Avatar
+                  key={reader}
+                  name={reader}
+                  size={15}
+                  variant="beam"
+                />
+              ))}
+            </div>
+          ) : <div />}
+          {(item.showReactions ?? []).length ? (
+            <div className="d-flex justify-content-end align-items gap-1 h6">
+              {(item.showReactions ?? []).map((emoji, index) => (
+                <span key={`${emoji[0]}-index`} className="animate__animated animate__bounceIn">
+                  {`${emoji[0]} ${emoji[1]}`}
+                </span>
+              ))}
+            </div>
+          ) : <div />}
+        </div>
+      </div>
+      <div
+        onMouseOver={() => setHover(true)}
+        onMouseOut={() => setHover(false)}
+        className="p-1 reaction"
+      >
         {hover ? (
           <div
             onMouseOver={() => setHover(true)}
@@ -60,7 +99,7 @@ function LeftMessage({ item, roomId }) {
             className="position-absolute"
             style={{
               top: -50,
-              left: 0,
+              right: 0,
               zIndex: 999
             }}
           >
@@ -84,38 +123,12 @@ function LeftMessage({ item, roomId }) {
             />
           </div>
         ) : null}
-        <div 
-          className="bubble"
-          onMouseOver={() => setHover(true)}
-          onMouseOut={() => setHover(false)}
-        >
-          {item.message}
-        </div>
-        {(item.reactions ?? []).length ? (
-          <div className="d-flex justify-content-end align-items gap-1 h6">
-            {(item.reactions ?? []).map(emoji => (
-              <span key={emoji[1]} className="animate__animated animate__bounceIn">
-                {emoji[1]}
-              </span>
-            ))}
-            <span className="small text-secondary">{item.reactions.length}</span>
-          </div>
-        ) : null}
-        <div className="meta left">
-          {`${truncate(item.username)} · ${formatTime(item.dateTime)}`}
-        </div>
-        {item.showReaders.length ? (
-          <div className="d-flex justify-content-start align-items gap-1">
-            <span className="small">✓</span> {item.showReaders.map(reader => (
-              <Avatar
-                key={reader}
-                name={reader}
-                size={15}
-                variant="beam"
-              />
-            ))}
-          </div>
-        ) : null}
+        <Image
+          src={AddReaction}
+          style={{
+            width: 15
+          }}
+        />
       </div>
     </div>
   )

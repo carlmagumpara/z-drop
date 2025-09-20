@@ -17,14 +17,48 @@ import { v4 as uuidv4 } from 'uuid';
 import RightMessage from './right-message';
 import LeftMessage from './left-message';
 
-function computeShowReaders(messages) {
+const mergeConsecutiveSystemMessages = (data) => {
+  const result = [];
+  let buffer = [];
+
+  const flushBuffer = () => {
+    if (buffer.length === 0) return;
+    const [first, ...rest] = buffer;
+    result.push({
+      id: first.id,
+      system: true,
+      messages: buffer.map(m => m.message),
+      dateTime: first.dateTime || null
+    });
+    buffer = [];
+  };
+
+  for (const item of data) {
+    if (item.system) {
+      buffer.push(item);
+    } else {
+      flushBuffer();
+      result.push(item);
+    }
+  }
+
+  flushBuffer();
+  return result;
+};
+
+function formatMessages(messages) {
   const seenPerSender = {};
 
-  return messages
+  const data = messages
     .slice()
     .reverse()
     .map(msg => {
-      if (msg.system) return { ...msg, showReaders: [] };
+      if (msg.system) {
+        return { 
+          ...msg, 
+          showReaders: [] 
+        };
+      }
 
       const sender = msg.username;
       if (!seenPerSender[sender]) {
@@ -37,9 +71,23 @@ function computeShowReaders(messages) {
 
       readers.forEach(r => seenPerSender[sender].add(r));
 
-      return { ...msg, showReaders: readers };
+      const reactions = Object.values(
+        msg.reactions.reduce((acc, [_, emoji]) => {
+          acc[emoji] = acc[emoji] || [emoji, 0];
+          acc[emoji][1]++;
+          return acc;
+        }, {})
+      );
+
+      return { 
+        ...msg, 
+        showReaders: readers,
+        showReactions: reactions,
+      };
     })
     .reverse();
+
+    return mergeConsecutiveSystemMessages(data);
 }
 
 function Chat({ roomId = '', visibility }) {
@@ -187,6 +235,8 @@ function Chat({ roomId = '', visibility }) {
     resetForm();
   };
 
+  console.log('formatMessages(messages)', formatMessages(messages));
+
   return (
     <Formik
       initialValues={{
@@ -237,12 +287,32 @@ function Chat({ roomId = '', visibility }) {
               />
             </div>
           ) : null}
-          <div className="w-100 d-flex flex-column" style={{ height: 400 }}>
+          <div 
+            className="w-100 vh-100 d-flex flex-column" 
+            style={{ paddingTop: 50 }}
+          >
             <div className="flex-grow-1 chat-window overflow-y-auto">
               <div className="messages p-3">
-                {computeShowReaders(messages).map(item => (
+                {formatMessages(messages).map(item => (
                   <Fragment key={item.id}>
-                    {item.system ? <p className="small text-center text-secondary mb-0">{item.message}</p> : (
+                    {item.system ? (
+                      <>
+                        {item.messages.length === 1 ? (
+                          <p style={{ fontSize: 11 }} className="text-center text-secondary mb-0">
+                            {item.messages[0]}
+                          </p>
+                        ) : (
+                        <details>
+                          <summary>View Updates</summary>
+                          {item.messages.map(message => (
+                            <p style={{ fontSize: 11 }} className="text-center text-secondary mb-0">
+                              {message}
+                            </p>
+                          ))}
+                        </details>
+                        )}
+                      </>
+                    ) : (
                       <>
                         {item.username === username ? (
                           <RightMessage 
