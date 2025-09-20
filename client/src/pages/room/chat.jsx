@@ -121,7 +121,7 @@ function Chat({ roomId = '' }) {
           setMessages(prevState => prevState.map(item => item.id === data.data.message_id ? {
             ...item,
             readers: [
-              ...item.readers, 
+              ...(item.readers ?? []), 
               data.data
             ]
           } : item));

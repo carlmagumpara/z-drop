@@ -133,7 +133,7 @@ io.on('connection', (socket) => {
         const updated = JSON.parse(messages[index]);
 
         updated.readers = [
-          ...updated.readers,
+          ...(updated.readers ?? []),
           data
         ];
         await client.lSet(
