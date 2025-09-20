@@ -78,7 +78,7 @@ function LeftMessage({ item, roomId }) {
           {(item.reactions ?? []).length ? (
             <div className="d-flex justify-content-end align-items gap-1 h6">
               {(item.reactions ?? []).map((emoji, index) => (
-                <span key={`${emoji[0]}-index`} className="animate__animated animate__bounceIn">
+                <span key={`${emoji[0]}-${index}`} className="animate__animated animate__bounceIn">
                   {`${emoji[0]} ${emoji[1]}`}
                 </span>
               ))}
