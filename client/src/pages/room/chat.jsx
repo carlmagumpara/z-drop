@@ -304,7 +304,7 @@ function Chat({ roomId = '' }) {
                           </>
                         ) : (
                           <>
-                            {item.username === username ? (                              
+                            {item.user_id === user_id ? (                            
                               <RightMessage
                                 item={item}
                                 roomId={roomId}

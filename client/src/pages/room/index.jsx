@@ -93,6 +93,9 @@ function Room() {
     positionUsers();
   }, [users]);
 
+  console.log('users', users);
+  console.log('positions', positions);
+
   const startConnection = async (peerId) => {
     targetId.current = peerId;
     setTargetIdChanges(peerId);
