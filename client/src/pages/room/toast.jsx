@@ -8,7 +8,7 @@ function CustomToast({ children, visibility = false, title = '' }) {
   return (
     <Toast 
       className="border-0 mb-2 animate__animated animate__bounceIn"
-      {...(show ? {
+      {...(!show ? {
         style: {
           width: 200
         }
