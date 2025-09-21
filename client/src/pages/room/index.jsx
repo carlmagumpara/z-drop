@@ -344,6 +344,7 @@ function Room() {
 
     return () => {
       socket.off("joined");
+      socket.off("room-status");
       socket.off("left");
       socket.off("room-users");
     };

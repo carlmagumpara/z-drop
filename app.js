@@ -86,6 +86,11 @@ io.on('connection', (socket) => {
     });
 
     console.log(`Room created: ${room_id}:${password}`);
+    socket.emit("room-status", {
+      data: {},
+      message: "Room Created!",
+      status: "room-created"
+    });
   });
 
   socket.on("join-room", async ({ room_id, password, user_id, username }) => {

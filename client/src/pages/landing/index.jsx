@@ -33,12 +33,15 @@ function Landing() {
   const { user_id, users, analytics } = usePresence();
 
   useEffect(() => {
-    const onMouseMove = (event) => {};
+    socket.on("room-status", (data) => {
+      console.log(data);
+    });
 
-    window.addEventListener('mousemove', onMouseMove);
+    return () => {
+      socket.off("room-status");
+    };
+  }, []);
 
-    return () => window.removeEventListener('mousemove', onMouseMove);
-  }, []);  
 
   return (
     <div className="radar-container">
