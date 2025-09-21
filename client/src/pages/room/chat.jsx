@@ -48,8 +48,6 @@ function Chat({ room_id = '' }) {
 
         setOffCanvasWidth(offcanvasRef.current?.dialog?.clientWidth);
       }, 0);
-
-      console.log('messages', messages);
     } else {
       setOffCanvasWidth(0);
     }
@@ -64,8 +62,6 @@ function Chat({ room_id = '' }) {
       }
 
       setIsBottom(isAtBottom);
-
-      console.log('isAtBottom', isAtBottom);
     };
 
      chatMessagesRef.current?.addEventListener("scroll", handleScroll);
@@ -91,7 +87,7 @@ function Chat({ room_id = '' }) {
               bottomRef.current?.scrollIntoView({ 
                 behavior: "smooth" 
               });
-            }, 100);
+            }, 500);
             sounds.messageenvoyeiphoneapple?.play();
           }
           break;
@@ -129,7 +125,7 @@ function Chat({ room_id = '' }) {
                 data.data
               ]
             } : item));
-          }, 0);
+          }, 100);
           break;
         case 'react':
           setMessages(prevState =>

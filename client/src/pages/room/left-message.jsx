@@ -7,6 +7,7 @@ import { usePresence } from '@/contexts/presence';
 import { socket } from '@/shared/socket';
 import useSound from './sounds';
 import AddReaction from '@/assets/add-reaction.png';
+import { v4 as uuidv4 } from 'uuid';
 
 function LeftMessage({ item, room_id, isLast }) {
   const sounds = useSound();
