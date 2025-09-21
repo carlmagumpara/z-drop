@@ -291,19 +291,24 @@ function Room() {
     });
 
     socket.on("left", (data) => {
-      sounds.simplewhoosh?.play();
-      setUsers(prevState => prevState.filter(item => item[0] !== data.user_id));
-      messageApi.info(`${data.username} left the room`);
-
-      socket.emit("on-message", {
-        room_id,
-        type: 'message',
-        data: {
-          id: uuidv4(),
-          system: true,
-          message: `${data.username} left the room`,
-        },      
-      });
+      const user = document.getElementById(data.user_id);
+      if(user) {
+        user.className = 'animate__animated animate__bounceOutUp';
+      }
+      setTimeout(() => {
+        sounds.simplewhoosh?.play();
+        setUsers(prevState => prevState.filter(item => item[0] !== data.user_id));
+        messageApi.info(`${data.username} left the room`);
+        socket.emit("on-message", {
+          room_id,
+          type: 'message',
+          data: {
+            id: uuidv4(),
+            system: true,
+            message: `${data.username} left the room`,
+          },      
+        });
+      }, 500);
     });
     
     socket.on("room-users", (message) => {
