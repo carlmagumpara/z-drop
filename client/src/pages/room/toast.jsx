@@ -6,7 +6,14 @@ function CustomToast({ children, visibility = false, title = '' }) {
   const [show, setShow] = useState(visibility);
 
   return (
-    <Toast className="border-0 mb-2">
+    <Toast 
+      className="border-0 mb-2 animate__animated animate__bounceIn"
+      {...(show ? {
+        style: {
+          width: 200
+        }
+      } : {})}
+    >
       <Toast.Header 
         closeButton={false}
         className="d-flex justify-content-between align-items-center w-100 border-0"
