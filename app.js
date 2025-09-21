@@ -9,7 +9,7 @@ import cors from 'cors';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const client = createClient({ 
+const redis = createClient({ 
   url: 'rediss://red-d361o3umcj7s73abuvmg:W9sA7l54Rhnuh3burt7TAafEaVUReEPk@oregon-keyvalue.render.com:6379',
   socket: {
     reconnectStrategy: (retries) => {
@@ -25,12 +25,12 @@ const client = createClient({
   }
 });
 
-client.on('error', (err) => console.log('Redis Client Error', err));
-client.on('reconnecting', () => console.log('Redis client is reconnecting...'));
-client.on('ready', () => console.log('Redis client is ready.'));
-client.on('end', () => console.log('Redis client is end.'));
+redis.on('error', (err) => console.log('Redis Client Error', err));
+redis.on('reconnecting', () => console.log('Redis client is reconnecting...'));
+redis.on('ready', () => console.log('Redis client is ready.'));
+redis.on('end', () => console.log('Redis client is end.'));
 
-client.connect();
+redis.connect();
 
 const corsConfig = {
   origin: ["http://localhost:5173", "http://localhost:4000"],
@@ -59,17 +59,17 @@ io.on('connection', (socket) => {
   console.log("User connected:", socket.id);
 
   socket.on("files-counter", async (data) => {
-    await client.incr("files:counter");
-    const files = await client.get("files:counter");
+    await redis.incr("files:counter");
+    const files = await redis.get("files:counter");
     io.emit("total_files", files);
   });
 
   socket.on("user_online", async ({ user_id, username }) => {
     onlineUsers.set(user_id, socket.id);
     console.log(`${username} is online`);
-    await client.sAdd("users", user_id);
-    const users = await client.sMembers("users");
-    const files = await client.get("files:counter");
+    await redis.sAdd("users", user_id);
+    const users = await redis.sMembers("users");
+    const files = await redis.get("files:counter");
 
     io.emit("total_files", files);
     io.emit("total_users", users.length);
@@ -142,7 +142,7 @@ io.on('connection', (socket) => {
     });
     socket.data.username = username;
     socket.data.user_id = user_id;
-    const messages = await client.lRange(`chat:messages-${room_id}`, 0, -1);
+    const messages = await redis.lRange(`chat:messages-${room_id}`, 0, -1);
     const clients = io.sockets.adapter.rooms.get(room_id);
     const users = [];
 
@@ -170,11 +170,11 @@ io.on('connection', (socket) => {
     });
 
     if(type === 'message') {
-      await client.rPush(`chat:messages-${room_id}`, JSON.stringify(data));
+      await redis.rPush(`chat:messages-${room_id}`, JSON.stringify(data));
     }
 
     if(type === 'read') {
-      const messages = await client.lRange(`chat:messages-${room_id}`, 0, -1);
+      const messages = await redis.lRange(`chat:messages-${room_id}`, 0, -1);
 
       const index = messages.findIndex(message=> {
         const parsed = JSON.parse(message);
@@ -188,7 +188,7 @@ io.on('connection', (socket) => {
           ...(updated.readers ?? []),
           data
         ];
-        await client.lSet(
+        await redis.lSet(
           `chat:messages-${room_id}`, 
           index, 
           JSON.stringify(updated)
@@ -197,7 +197,7 @@ io.on('connection', (socket) => {
     }
 
     if(type === 'react') {
-      const messages = await client.lRange(`chat:messages-${room_id}`, 0, -1);
+      const messages = await redis.lRange(`chat:messages-${room_id}`, 0, -1);
 
       const index = messages.findIndex(message=> {
         const parsed = JSON.parse(message);
@@ -222,7 +222,7 @@ io.on('connection', (socket) => {
           }
         }
 
-        await client.lSet(
+        await redis.lSet(
           `chat:messages-${room_id}`, 
           index, 
           JSON.stringify(updated)
