@@ -306,9 +306,7 @@ function Room() {
 
   useEffect(() => {
     socket.on("joined", (data) => {
-      if(data.user_id !== user_id) {
-        messageApi.info(`${data.username} joined the room`);
-      }
+      messageApi.info(`${data.username} joined the room`);
       socket.emit("on-message", {
         roomId,
         type: 'message',
@@ -319,6 +317,21 @@ function Room() {
         },      
       });
     });
+
+    socket.on("room-status", (data) => {
+      console.log(data);
+      // messageApi.info(`${data.username} joined the room`);
+      // socket.emit("on-message", {
+      //   roomId,
+      //   type: 'message',
+      //   data: {
+      //     id: uuidv4(),
+      //     system: true,
+      //     message: `${data.username} joined the room`,
+      //   },      
+      // });
+    });
+
     socket.on("left", (data) => {
       sounds.simplewhoosh?.play();
       setUsers(prevState => prevState.filter(item => item[0] !== data.user_id));

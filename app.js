@@ -83,11 +83,19 @@ io.on('connection', (socket) => {
   socket.on("join-room", async ({ roomId, user_id, username }) => {
     socket.join(roomId);
     console.log(`${username} joined room: ${roomId}`);
-    socket.to(roomId).emit("joined", {
+    socket.broadcast.to(roomId).emit("joined", {
       user_id, 
       username,
       socket_id: socket.id
     });
+    socket.to(roomId).emit("room-status", {
+      status: "success"
+    });
+    // socket.to(roomId).emit("joined", {
+    //   user_id, 
+    //   username,
+    //   socket_id: socket.id
+    // });
     socket.data.username = username;
     socket.data.user_id = user_id;
     const messages = await client.lRange(`chat:messages-${roomId}`, 0, -1);
