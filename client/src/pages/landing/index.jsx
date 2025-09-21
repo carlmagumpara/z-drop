@@ -36,6 +36,7 @@ function Landing() {
   const [loading, setLoading] = useState(false);
 
   const createRoom = async password => {
+    setLoading(true);
     const room_id = uuidv4();
     try {
       const response = await axios.post('/create-room', {
@@ -44,11 +45,17 @@ function Landing() {
         name: 'kung ano ano lang',
         owner_id: user_id,
       });
+      setLoading(false);
       navigate(`/r/${room_id}`);
     } catch (error) {
+      setLoading(false);
       console.log(error);
     }
   };
+
+  if(loading) {
+    return <Loading />;
+  }
 
   return (
     <div className="radar-container">

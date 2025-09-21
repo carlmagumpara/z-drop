@@ -238,16 +238,20 @@ function Room() {
   }, []);
 
   useEffect(() => {
-    const handleBeforeUnload = (event) => socket.emit("leave-room", { 
-      room_id, 
-      username, 
-      user_id,
-    });
+    const handleBeforeUnload = (event) => {
+      if(room_status.status === 'success') {
+        socket.emit("leave-room", { 
+          room_id, 
+          username, 
+          user_id,
+        });
+      }
+    };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
 
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, []);
+  }, [room_status]);
 
   useEffect(() => {
     if(room_status?.status === 'success' && searchParams.get('modal') !== 'false') {
