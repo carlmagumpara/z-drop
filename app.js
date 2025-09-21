@@ -108,24 +108,31 @@ io.on('connection', (socket) => {
     const room = await redis.hGetAll(`room:${room_id}`);
 
     if(room.password !== '' && room.owner_id !== user_id) {
-      if(!password) {
-        socket.emit("room-status", {
-          data: {},
-          message: "Please enter room password",
-          status: "enter-password"
-        });
+      const has_access = await client.exists(`room-passwords:${user_id}-${room_id}`);
 
-        return;
-      }
-      
-      if(room.password !== password) {
-        socket.emit("room-status", {
-          data: {},
-          message: "Wrong password!",
-          status: "wrong-password"
-        });
+      if(!has_access) {
+        if(!password) {
+          socket.emit("room-status", {
+            data: {},
+            message: "Please enter room password",
+            status: "enter-password"
+          });
 
-        return;
+          return;
+        }
+        
+        if(room.password !== password) {
+          socket.emit("room-status", {
+            data: {},
+            message: "Wrong password!",
+            status: "wrong-password"
+          });
+
+          return;
+        }
+        await client.set(`room-passwords:${user_id}-${room_id}`, true, { 
+          EX: 60 * 60 * 60 
+        });
       }
     }
 

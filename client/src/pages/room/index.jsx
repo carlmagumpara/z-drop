@@ -5,6 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import Avatar from 'boring-avatars';
 import { FaQrcode } from 'react-icons/fa';
 import { IoMdChatboxes } from 'react-icons/io';
+import { IoDocumentLock } from 'react-icons/io5';
 import { socket } from '@/shared/socket';
 import { usePresence } from '@/contexts/presence';
 import { useMessage } from '@/contexts/message';
@@ -13,6 +14,8 @@ import useSound from './sounds';
 import ChatProvider, { useChat } from './chat-context';
 import { iceConfig } from './config';
 import Loading from '@/shared/loading';
+import { Formik } from 'formik';
+import * as Yup from 'yup';
 
 const FileList = lazy(() => import('./file-list'));
 const CustomToast = lazy(() => import('./toast'));
@@ -105,16 +108,6 @@ function Room() {
 
     positionUsers();
   }, [users]);
-
-  const startConnection = async (peerId) => {
-    targetId.current = peerId;
-    setTargetIdChanges(peerId);
-    const offer = await pc.current.createOffer();
-    await pc.current.setLocalDescription(offer);
-    socket.emit("offer", { to: peerId, sdp: offer });
-
-    console.log('startConnection');
-  };
 
   useEffect(() => {
     pc.current = new RTCPeerConnection(iceConfig);
@@ -253,13 +246,81 @@ function Room() {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [room_status]);
 
+  // useEffect(() => {
+  //   if(room_status?.status === 'success' && searchParams.get('modal') !== 'false') {
+  //     handleShow(MODAL_TYPES.QR_CODE, {
+  //       url: `${window.location.href}?modal=false`
+  //     });
+  //   }
+  // }, [room_status]);
+
   useEffect(() => {
-    if(room_status?.status === 'success' && searchParams.get('modal') !== 'false') {
-      handleShow(MODAL_TYPES.QR_CODE, {
-        url: `${window.location.href}?modal=false`
+    socket.emit("join-room", { 
+      room_id, 
+      username, 
+      user_id,
+    });
+
+    socket.on("joined", (data) => {
+      messageApi.info(`${data.username} joined the room`);
+      socket.emit("on-message", {
+        room_id,
+        type: 'message',
+        data: {
+          id: uuidv4(),
+          system: true,
+          message: `${data.username} joined the room`,
+        },      
       });
-    }
-  }, [room_status]);
+    });
+
+    socket.on("room-status", (data) => {
+      console.log(data);
+      if(data.status === 'not-found') {
+        messageApi.info(data.message);
+        navigate('/');
+      } else {
+        setRoomStatus(data);
+      }
+    });
+
+    socket.on("left", (data) => {
+      sounds.simplewhoosh?.play();
+      setUsers(prevState => prevState.filter(item => item[0] !== data.user_id));
+      messageApi.info(`${data.username} left the room`);
+
+      socket.emit("on-message", {
+        room_id,
+        type: 'message',
+        data: {
+          id: uuidv4(),
+          system: true,
+          message: `${data.username} left the room`,
+        },      
+      });
+    });
+    
+    socket.on("room-users", (message) => {
+      setUsers(prevState => [...new Set(message)]);
+    });
+
+    return () => {
+      socket.off("joined");
+      socket.off("room-status");
+      socket.off("left");
+      socket.off("room-users");
+    };
+  }, []);
+
+  const startConnection = async (peerId) => {
+    targetId.current = peerId;
+    setTargetIdChanges(peerId);
+    const offer = await pc.current.createOffer();
+    await pc.current.setLocalDescription(offer);
+    socket.emit("offer", { to: peerId, sdp: offer });
+
+    console.log('startConnection');
+  };
 
   const sendFile = (file) => {
     const metadata = {
@@ -311,215 +372,237 @@ function Room() {
     readSlice(0);
   };
 
-  useEffect(() => {
+  const onSubmit = async (values, { setSubmitting, setErrors }) => {
     socket.emit("join-room", { 
       room_id, 
       username, 
       user_id,
+      ...values
     });
+  };
 
-    socket.on("joined", (data) => {
-      messageApi.info(`${data.username} joined the room`);
-      socket.emit("on-message", {
-        room_id,
-        type: 'message',
-        data: {
-          id: uuidv4(),
-          system: true,
-          message: `${data.username} joined the room`,
-        },      
-      });
-    });
-
-    socket.on("room-status", (data) => {
-      console.log(data);
-      if(data.status === 'not-found') {
-        messageApi.info(data.message);
-        navigate('/');
-      } else {
-        setRoomStatus(data.status);
-      }
-    });
-
-    socket.on("left", (data) => {
-      sounds.simplewhoosh?.play();
-      setUsers(prevState => prevState.filter(item => item[0] !== data.user_id));
-      messageApi.info(`${data.username} left the room`);
-
-      socket.emit("on-message", {
-        room_id,
-        type: 'message',
-        data: {
-          id: uuidv4(),
-          system: true,
-          message: `${data.username} left the room`,
-        },      
-      });
-    });
-    
-    socket.on("room-users", (message) => {
-      setUsers(prevState => [...new Set(message)]);
-    });
-
-    return () => {
-      socket.off("joined");
-      socket.off("room-status");
-      socket.off("left");
-      socket.off("room-users");
-    };
-  }, []);
 
   if(!room_status) {
     return <Loading />;
   }
 
+  console.log('room_status', room_status);
+
   return (
     <>
       <div className="radar vh-100 w-100 position-relative">
-        <ToastContainer 
-          className="position-fixed"
-          style={{
-            bottom: 15,
-            left: 15,
-            zIndex: 999
-          }}
-        >
-          <Suspense fallback={null}>
-            <CustomToast
-              title={`Receiving Files (${receiving.length})`}
-              visibility={false}
-            >
-              {visibility => (
-                <FileList
-                  files={receiving}
-                  download={true}
-                />
-              )}
-            </CustomToast>
-          </Suspense>
-          <Suspense fallback={null}>
-            <CustomToast
-              title={`Sending Files (${sending.length})`}
-              visibility={false}
-            >
-              {visibility => (
-                <FileList
-                  files={sending}
-                  download={false}
-                />
-              )}
-            </CustomToast>
-          </Suspense>
-        </ToastContainer>
-        <div
-          className="position-absolute d-flex justify-content-between align-items-center gap-3"
-          style={{
-            right: 15 + offcanvasswidth,
-            bottom: 15,
-            zIndex: 999
-          }}
-        >
-          <Button
-            size="lg"
-            variant="light"
-            onClick={() => handleShow(MODAL_TYPES.QR_CODE, {
-              url: `${window.location.href}?modal=false`
-            })}
-          >
-            <FaQrcode />
-          </Button>
-          <Button
-            size="lg"
-            variant="light"
-            onClick={toogleChat}
-          >
-            <IoMdChatboxes />
-            {!chat ? (
-              <Badge
-                bg="danger"
-                className="position-absolute d-flex justify-content-center align-items-center"
-                style={{
-                  right: -10,
-                  width: 30,
-                  height: 30,
-                  top: -15,
-                  borderRadius: 30,
-                }}
-              >
-                {unread}
-              </Badge>
-            ) : null}
-          </Button>
-        </div>
-        <div
-          style={{
-            width: "100%",
-            height: "100vh",
-            position: "relative",
-            overflow: "hidden",
-          }}
-        >
-          <p className="text-center" style={{ marginTop: 100 }}>Click the avatar of the user you want to send a file to.</p>
-          {positions.map((p, i) => (
-            <div
-              key={i}
-              id={p.user_id}
+        {room_status?.status === 'success' ? (
+          <>
+            <ToastContainer 
+              className="position-fixed"
               style={{
-                position: "absolute",
-                left: p.x,
-                top: p.y,
-              }}
-              className="animate__animated animate__pulse animate__infinite"
-              onClick={event => {
-                if(p.user_id === user_id) {
-                  sounds.pop?.play();
-                  return;
-                }
-
-                if(targetId.current !== p.socket_id) {
-                  startConnection(p.socket_id);  
-                } else {
-                  // New Connection
-                  pc.current?.close();
-                  pc.current = null;
-                  startConnection(p.socket_id);
-                }
-
-                fileInputRef.current.click();
+                bottom: 15,
+                left: 15,
+                zIndex: 999
               }}
             >
-              <div
-                className="d-flex flex-column align-items-center gap-1"
+              <Suspense fallback={null}>
+                <CustomToast
+                  title={`Receiving Files (${receiving.length})`}
+                  visibility={false}
+                >
+                  {visibility => (
+                    <FileList
+                      files={receiving}
+                      download={true}
+                    />
+                  )}
+                </CustomToast>
+              </Suspense>
+              <Suspense fallback={null}>
+                <CustomToast
+                  title={`Sending Files (${sending.length})`}
+                  visibility={false}
+                >
+                  {visibility => (
+                    <FileList
+                      files={sending}
+                      download={false}
+                    />
+                  )}
+                </CustomToast>
+              </Suspense>
+            </ToastContainer>
+            <div
+              className="position-absolute d-flex justify-content-between align-items-center gap-3"
+              style={{
+                right: 15 + offcanvasswidth,
+                bottom: 15,
+                zIndex: 999
+              }}
+            >
+              <Button
+                size="lg"
+                variant="light"
+                onClick={() => handleShow(MODAL_TYPES.QR_CODE, {
+                  url: `${window.location.href}?modal=false`
+                })}
               >
-                <Avatar
-                  name={p.username}
-                  size={size}
-                  variant="beam"
-                />
-                <p className="text-center small">{p.user_id === user_id ? 'You' : username}</p>
-              </div>
+                <FaQrcode />
+              </Button>
+              <Button
+                size="lg"
+                variant="light"
+                onClick={toogleChat}
+              >
+                <IoMdChatboxes />
+                {!chat ? (
+                  <Badge
+                    bg="danger"
+                    className="position-absolute d-flex justify-content-center align-items-center"
+                    style={{
+                      right: -10,
+                      width: 30,
+                      height: 30,
+                      top: -15,
+                      borderRadius: 30,
+                    }}
+                  >
+                    {unread}
+                  </Badge>
+                ) : null}
+              </Button>
             </div>
-          ))}
-        </div>
-        <Form.Group className="mb-3 d-none">
-          <Form.Label>Select File</Form.Label>
-          <Form.Control
-            ref={fileInputRef}
-            type="file"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) {
-                sendFile(file);
-              }
+            <div
+              style={{
+                width: "100%",
+                height: "100vh",
+                position: "relative",
+                overflow: "hidden",
+              }}
+            >
+              <p className="text-center" style={{ marginTop: 100 }}>Click the avatar of the user you want to send a file to.</p>
+              {positions.map((p, i) => (
+                <div
+                  key={i}
+                  id={p.user_id}
+                  style={{
+                    position: "absolute",
+                    left: p.x,
+                    top: p.y,
+                  }}
+                  className="animate__animated animate__pulse animate__infinite"
+                  onClick={event => {
+                    if(p.user_id === user_id) {
+                      sounds.pop?.play();
+                      return;
+                    }
+
+                    if(targetId.current !== p.socket_id) {
+                      startConnection(p.socket_id);  
+                    } else {
+                      // New Connection
+                      pc.current?.close();
+                      pc.current = null;
+                      startConnection(p.socket_id);
+                    }
+
+                    fileInputRef.current.click();
+                  }}
+                >
+                  <div
+                    className="d-flex flex-column align-items-center gap-1"
+                  >
+                    <Avatar
+                      name={p.username}
+                      size={size}
+                      variant="beam"
+                    />
+                    <p className="text-center small">{p.user_id === user_id ? 'You' : username}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <Form.Group className="mb-3 d-none">
+              <Form.Label>Select File</Form.Label>
+              <Form.Control
+                ref={fileInputRef}
+                type="file"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    sendFile(file);
+                  }
+                }}
+              />
+            </Form.Group>
+            <Suspense fallback={null}>
+              <Chat
+                room_id={room_id}
+              />
+            </Suspense>
+          </>
+        ) : (
+          <Formik
+            initialValues={{
+              password: '',
             }}
-          />
-        </Form.Group>
+            validationSchema={() => Yup.object().shape({
+              password: Yup.string().required('Required'),
+            })}
+            onSubmit={onSubmit}
+          >
+          {({
+            values,
+            errors,
+            touched,
+            handleChange,
+            handleBlur,
+            handleSubmit,
+            isSubmitting,
+            setFieldValue,
+            setValues
+           }) => (
+              <Form 
+                onSubmit={handleSubmit} 
+                autoComplete="off"
+              >
+                <Row>
+                  <Col 
+                    md={{ span: 4, offset: 4 }} 
+                    className="vh-100 d-flex justify-content-center align-items-center"
+                  >
+                    <div className="w-100">
+                      <h1 className="display-1 text-center text-danger">
+                        <IoDocumentLock />
+                      </h1>
+                      <Form.Group className="mb-3">
+                        <Form.Label>Room Password</Form.Label>
+                        <Form.Control 
+                          type="password" 
+                          name="password"
+                          placeholder="Enter Room Password"
+                          value={values.password}
+                          onChange={handleChange}
+                          onBlur={handleBlur}
+                          className={errors.password && touched.password && 'is-invalid'}
+                        />
+                        {errors.password && touched.password && <Form.Control.Feedback type="invalid">{errors.password}</Form.Control.Feedback>}
+                      </Form.Group>
+                      <div
+                        className="d-flex justify-content-end align-items-center"
+                      >
+                        <Button 
+                          disabled={isSubmitting}
+                          type="submit"
+                          variant="danger"
+                        >
+                          {isSubmitting ? 'PLEASE WAIT...' : 'Submit'}
+                        </Button>
+                      </div>
+                    </div>
+                  </Col>
+                </Row>
+              </Form>
+           )}
+          </Formik>
+        )}
       </div>
-      <Suspense fallback={null}>
-        <Chat
-          room_id={room_id}
-        />
-      </Suspense>
     </>
   );
 }
