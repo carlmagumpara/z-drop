@@ -462,8 +462,9 @@ function Room() {
                 <IoMdChatboxes />
                 {!chat ? (
                   <Badge
+                    key={unread}
                     bg="danger"
-                    className="position-absolute d-flex justify-content-center align-items-center"
+                    className="position-absolute d-flex justify-content-center align-items-center animate__animated animate__bounceIn"
                     style={{
                       right: -10,
                       width: 30,
@@ -485,7 +486,14 @@ function Room() {
                 overflow: "hidden",
               }}
             >
-              <p className="text-center" style={{ marginTop: 100 }}>Click the avatar of the user you want to send a file to.</p>
+              <p 
+                className="text-center" 
+                style={{ 
+                  marginTop: 100 
+                }}
+              >
+                Click the avatar of the user you want to send a file to.
+              </p>
               {positions.map((p, i) => (
                 <div
                   key={i}
@@ -495,7 +503,7 @@ function Room() {
                     left: p.x,
                     top: p.y,
                   }}
-                  className="animate__animated animate__pulse animate__infinite"
+                  className="animate__animated animate__bounceIn"
                   onClick={event => {
                     if(p.user_id === user_id) {
                       sounds.pop?.play();
