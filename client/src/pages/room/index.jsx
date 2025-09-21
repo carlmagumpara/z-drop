@@ -44,12 +44,6 @@ function Room() {
   const formikRef = useRef(null);  
   const [status, setStatus] = useState("disconnected");
 
-  // "connected"
-  // "connecting"
-  // "disconnected"
-  // "failed"
-  // "closed"
-
   const size = 60;
   const maxTries = 500;
 
@@ -409,6 +403,14 @@ function Room() {
     });
   };
 
+  const statusIcons = {
+    connected: "✅",
+    connecting: "⏳",
+    disconnected: "🔌",
+    failed: "❌",
+    closed: "🚪",
+  };
+
   if(!room_status) {
     return <Loading />;
   }
@@ -426,7 +428,7 @@ function Room() {
                 zIndex: 999
               }}
             >
-              <p>Status: {status}</p>
+              <p>Status: {statusIcons[status]} {status}</p>
               <Suspense fallback={null}>
                 <CustomToast
                   title={`Receiving Files (${receiving.length})`}
