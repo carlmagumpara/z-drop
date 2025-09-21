@@ -82,6 +82,8 @@ io.on('connection', (socket) => {
       password,
       owner_id
     }));
+
+    console.log(`private room created: ${roomId}:${password}`);
   });
 
   socket.on("join-room", async ({ roomId, user_id, username }) => {
