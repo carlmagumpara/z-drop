@@ -95,6 +95,7 @@ io.on('connection', (socket) => {
       if(!password) {
         socket.emit("room-status", {
           data: {},
+          message: "Please enter room password",
           status: "enter-password"
         });
 
@@ -104,6 +105,7 @@ io.on('connection', (socket) => {
       if(room.password !== password) {
         socket.emit("room-status", {
           data: {},
+          message: "Wrong password!",
           status: "wrong-password"
         });
 
@@ -116,6 +118,7 @@ io.on('connection', (socket) => {
     // check room if theres a password
     socket.emit("room-status", {
       data: room,
+      message: "Joining success",
       status: "success"
     });
     // if success
