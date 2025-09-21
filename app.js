@@ -92,7 +92,7 @@ io.on('connection', (socket) => {
 
     const is_private_room = await client.get(`rooms:private-${roomId}`);
     if(is_private_room) {
-      console.log('is_private_room', JSON.parse({ roomId, user_id, username }));
+      console.log('is_private_room', is_private_room);
     }    
 
     // check room if theres a password
