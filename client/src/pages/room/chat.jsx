@@ -129,31 +129,27 @@ function Chat({ roomId = '' }) {
         case 'react':
           setMessages(prevState =>
             prevState.map(item => {
-              const updated = { ...item };
-
               if (item.id !== data.data.message_id) {
                 return item
               };
-
-              const reactions = updated.reactions ?? [];
-
-              if(!reactions.some(_item => _item.user_id === data.data.user_id)) {
-                updated.reactions = [
-                  ...reactions, 
-                  data.data
-                ];
+              const reactions = item.reactions ?? [];
+              let updatedReactions;
+              if (!reactions.some(r => r.user_id === data.data.user_id)) {
+                updatedReactions = [...reactions, data.data];
               } else {
-                const react = reactions.find(_item => _item.user_id === data.data.user_id);
-                if(react.emoji === data.data.emoji) {
-                  updated.reactions = reactions.filter(_item => _item.user_id === data.data.user_id);
+                const existing = reactions.find(r => r.user_id === data.data.user_id);
+                if (existing.emoji === data.data.emoji) {
+                  updatedReactions = reactions.filter(r => r.user_id !== data.data.user_id);
                 } else {
-                  updated.reactions = reactions.map(_item => item.user_id === data.data.user_id? data.data : item);
+                  updatedReactions = reactions.map(r =>
+                    r.user_id === data.data.user_id ? data.data : r
+                  );
                 }
               }
 
-              return { 
-                ...item, 
-                reactions: updated
+              return {
+                ...item,
+                reactions: updatedReactions,
               };
             })
           );
