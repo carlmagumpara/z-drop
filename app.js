@@ -150,9 +150,12 @@ io.on('connection', (socket) => {
       username,
       socket_id: socket.id
     });
+    const messages = await redis.lRange(`chat:messages-${room_id}`, 0, -1);
+    socket.emit("chat-history", messages.map(message => JSON.parse(message)));
+
     socket.data.username = username;
     socket.data.user_id = user_id;
-    const messages = await redis.lRange(`chat:messages-${room_id}`, 0, -1);
+    
     const clients = io.sockets.adapter.rooms.get(room_id);
     const users = [];
 
@@ -164,7 +167,6 @@ io.on('connection', (socket) => {
     }
 
     io.to(room_id).emit("room-users", users);
-    socket.emit("chat-history", messages.map((m) => JSON.parse(m)));
   });
 
   socket.on("leave-room", ({ room_id, user_id, username }) => {
