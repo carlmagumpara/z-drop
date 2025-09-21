@@ -89,6 +89,8 @@ function RightMessage({ item, room_id }) {
                   room_id,
                   type: 'react',
                   data: {
+                    id: uuidv4(),
+                    room_id,
                     message_id: item.id,
                     username,
                     user_id,

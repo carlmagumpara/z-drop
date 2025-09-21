@@ -165,6 +165,7 @@ function Chat({ room_id = '' }) {
     });
 
     socket.on("chat-history", (data) => {
+      console.log("chat-history", data);
       setMessages(data);
     });
 
@@ -196,6 +197,7 @@ function Chat({ room_id = '' }) {
       type: 'message',
       data: {
         ...values,
+        room_id,
         id: uuidv4(),
         user_id,
         username,
@@ -382,6 +384,7 @@ function Chat({ room_id = '' }) {
                           room_id,
                           type: 'typing',
                           data: {
+                            room_id,
                             system: false,
                             username,
                             user_id,

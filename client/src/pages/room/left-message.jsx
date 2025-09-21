@@ -17,11 +17,13 @@ function LeftMessage({ item, room_id }) {
   const { user_id, username } = usePresence();
   
   useEffect(() => {
-    if(isVisible && !item.readers.find(user => user.user_id === user_id)) {
+    if(isVisible && !item.readers.find(reader => reader.user_id === user_id)) {
       socket.emit("on-message", {
         room_id,
         type: 'read',
         data: {
+          id: uuidv4(),
+          room_id,
           message_id: item.id,
           username,
           user_id,
@@ -55,7 +57,7 @@ function LeftMessage({ item, room_id }) {
         <div className="d-flex justify-content-between align-items-center pt-1">
           {item.readers.length ? (
             <div className="d-flex justify-content-start align-items gap-1">
-              <span className="small">✓</span> {item.readers.map(reader => (
+              <span className="small">✓</span> {item.readers.filter(reader => reader.user_id !== user_id).map(reader => (
                 <div 
                   className="animate__animated animate__fadeInDown animate__faster"
                   key={reader.user_id}
@@ -106,6 +108,8 @@ function LeftMessage({ item, room_id }) {
                   room_id,
                   type: 'react',
                   data: {
+                    id: uuidv4(),
+                    room_id,
                     message_id: item.id,
                     username,
                     user_id,

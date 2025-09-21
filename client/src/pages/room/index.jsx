@@ -147,6 +147,7 @@ function Room() {
         room_id,
         type: 'message',
         data: {
+          room_id,
           id: uuidv4(),
           system: true,
           message: `${data.username} joined the room`,
@@ -181,6 +182,7 @@ function Room() {
           room_id,
           type: 'message',
           data: {
+            room_id,
             id: uuidv4(),
             system: true,
             message: `${data.username} left the room`,
