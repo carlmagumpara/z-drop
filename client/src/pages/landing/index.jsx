@@ -35,16 +35,16 @@ function Landing() {
   const { user_id, users, analytics } = usePresence();
   const [loading, setLoading] = useState(false);
 
-  const createRoom = async () => {
+  const createRoom = async password => {
     const room_id = uuidv4();
     try {
       const response = await axios.post('/create-room', {
         room_id,
+        password,
         name: 'kung ano ano lang',
-        password: '09071995',
         owner_id: user_id,
       });
-      console.log('Data fetched successfully:', response.data);
+      navigate(`/r/${room_id}`);
     } catch (error) {
       console.log(error);
     }
@@ -73,7 +73,7 @@ function Landing() {
               <div className="mb-2">
                 <Button
                   size="lg"
-                  onClick={createRoom}
+                  onClick={() => createRoom('')}
                 >
                   <BsFillSendArrowUpFill /> Get Started
                 </Button>
@@ -82,7 +82,7 @@ function Landing() {
                 <Button
                   variant="link"
                   className="text-dark text-decoration-none"
-                  onClick={createRoom}
+                  onClick={() => createRoom('09071995')}
                 >
                   <IoDocumentLock /> Create Room with Password
                 </Button>

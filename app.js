@@ -93,23 +93,6 @@ io.on('connection', (socket) => {
     io.emit("update_users", Array.from(onlineUsers.keys()));
   });
 
-  // socket.on("create-room", async ({ room_id, name, password, owner_id }) => {
-  //   await redis.hSet(`room:${room_id}`, {
-  //     room_id,
-  //     name,
-  //     password, 
-  //     owner_id,
-  //     created_at: Date.now()
-  //   });
-  //   const room = await redis.hGetAll(`room:${room_id}`);
-  //   socket.emit("room-status", {
-  //     data: room,
-  //     message: "Room Created!",
-  //     status: "room-created"
-  //   });
-  //   console.log(`Room created: ${room_id}:${password}`);
-  // });
-
   socket.on("join-room", async ({ room_id, password, user_id, username }) => {
     const exists = await redis.exists(`room:${room_id}`);
 
@@ -124,7 +107,7 @@ io.on('connection', (socket) => {
 
     const room = await redis.hGetAll(`room:${room_id}`);
 
-    if(room?.password && !room?.owner_id !== user_id) {
+    if(room.password && !room.owner_id !== user_id) {
       if(!password) {
         socket.emit("room-status", {
           data: {},

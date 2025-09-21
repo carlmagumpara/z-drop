@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, lazy, Suspense } from 'react';
-import { useParams, useSearchParams } from 'react-router';
+import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { Container, Row, Col, Form, Button, InputGroup, ToastContainer, Badge } from 'react-bootstrap';
 import { v4 as uuidv4 } from 'uuid';
 import Avatar from 'boring-avatars';
@@ -12,12 +12,14 @@ import { useGlobalModal, MODAL_TYPES } from '@/contexts/global-modal';
 import useSound from './sounds';
 import ChatProvider, { useChat } from './chat-context';
 import { iceConfig } from './config';
+import Loading from '@/shared/loading';
 
 const FileList = lazy(() => import('./file-list'));
 const CustomToast = lazy(() => import('./toast'));
 const Chat = lazy(() => import('./chat'));
 
 function Room() {
+  const navigate = useNavigate();
   const { room_id } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const { handleShow } = useGlobalModal();
@@ -43,7 +45,12 @@ function Room() {
   useEffect(() => {
     const positionUsers = () => {
       const padding = 50; 
-      const radar = document.querySelector('.radar');      
+      const radar = document.querySelector('.radar');
+
+      if(!radar) {
+        return;
+      }
+
       const parentWidth = radar.clientWidth;
       const parentHeight = radar.clientHeight;
       const availableWidth = parentWidth - padding * 2;
@@ -243,7 +250,7 @@ function Room() {
   }, []);
 
   useEffect(() => {
-    if(room_status && searchParams.get('modal') !== 'false') {
+    if(room_status?.status === 'success' && searchParams.get('modal') !== 'false') {
       handleShow(MODAL_TYPES.QR_CODE, {
         url: `${window.location.href}?modal=false`
       });
@@ -322,7 +329,12 @@ function Room() {
 
     socket.on("room-status", (data) => {
       console.log(data);
-      setRoomStatus(data.status);
+      if(data.status === 'not-found') {
+        messageApi.info(data.message);
+        navigate('/');
+      } else {
+        setRoomStatus(data.status);
+      }
     });
 
     socket.on("left", (data) => {
@@ -352,6 +364,10 @@ function Room() {
       socket.off("room-users");
     };
   }, []);
+
+  if(!room_status) {
+    return <Loading />;
+  }
 
   return (
     <>
