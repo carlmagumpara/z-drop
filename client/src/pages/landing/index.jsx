@@ -6,6 +6,7 @@ import { BsFillSendArrowUpFill } from 'react-icons/bs';
 import { IoDocumentLock } from 'react-icons/io5';
 import { v4 as uuidv4 } from 'uuid';
 import CountUp from 'react-countup';
+import { socket } from '@/shared/socket';
 import { usePresence } from '@/contexts/presence';
 
 const imageModules = import.meta.glob('@/assets/formats/*.{png,jpg,jpeg,gif,svg}', { 
@@ -29,7 +30,7 @@ const positions = [
 
 function Landing() {
   const navigate = useNavigate();
-  const { users, analytics } = usePresence();
+  const { user_id, users, analytics } = usePresence();
 
   useEffect(() => {
     const onMouseMove = (event) => {};
@@ -72,8 +73,14 @@ function Landing() {
                   variant="link"
                   className="text-dark text-decoration-none"
                   onClick={() => {
+                    const roomId = uuidv4();
 
-                    // navigate(`/r/${uuidv4()}`);
+                    socket.emit("create-private-room", {
+                      roomId,
+                      password: '09071995',
+                      owner_id: user_id,
+                    });
+                    navigate(`/r/${roomId}`);
                   }}
                 >
                   <IoDocumentLock /> Create Room with Password

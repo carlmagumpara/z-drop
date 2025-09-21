@@ -76,13 +76,22 @@ io.on('connection', (socket) => {
     io.emit("update_users", Array.from(onlineUsers.keys()));
   });
 
-  socket.on("create-private-room", async ({ roomId, password }) => {
-    await client.set(`rooms:private-${roomId}`, password);
+  socket.on("create-private-room", async ({ roomId, password, owner_id }) => {
+    await client.set(`rooms:private-${roomId}`, JSON.stringify({ 
+      roomId, 
+      password,
+      owner_id
+    }));
   });
 
   socket.on("join-room", async ({ roomId, user_id, username }) => {
     socket.join(roomId);
     console.log(`${username} joined room: ${roomId}`);
+
+    const is_private_room = await client.get(`rooms:private-${roomId}`);
+    if(is_private_room) {
+      console.log('is_private_room', JSON.parse({ roomId, user_id, username }));
+    }    
 
     // check room if theres a password
     socket.emit("room-status", {
