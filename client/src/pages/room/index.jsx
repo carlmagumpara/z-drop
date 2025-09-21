@@ -41,7 +41,13 @@ function Room() {
   const [positions, setPositions] = useState([]);
   const sounds = useSound();
   const [room_status, setRoomStatus] = useState(null);
-  const formikRef = useRef(null);
+  const formikRef = useRef(null);  
+  const [status, setStatus] = useState(null);
+
+  // "connected"
+  // "disconnected"
+  // "failed"
+  // "closed"
 
   const size = 60;
   const maxTries = 500;
@@ -265,19 +271,7 @@ function Room() {
 
       pc.current.onconnectionstatechange = () => {
         console.log("Connection state:", pc.current.connectionState);
-
-        switch (pc.current.connectionState) {
-          case "connected":
-            messageApi.info("✅ Peers connected successfully!");
-            break;
-          case "disconnected":
-          case "failed":
-            messageApi.error("❌ Connection failed or lost.");
-            break;
-          case "closed":
-            messageApi.warning("🔒 Connection closed.");
-            break;
-        }
+        setStatus(pc.current.connectionState);
       };
 
       pc.current.onicecandidate = (e) => {
@@ -329,19 +323,7 @@ function Room() {
 
     pc.current.onconnectionstatechange = () => {
       console.log("Connection state:", pc.current.connectionState);
-
-      switch (pc.current.connectionState) {
-        case "connected":
-          messageApi.info("✅ Peers connected successfully!");
-          break;
-        case "disconnected":
-        case "failed":
-          messageApi.error("❌ Connection failed or lost.");
-          break;
-        case "closed":
-          messageApi.warning("🔒 Connection closed.");
-          break;
-      }
+      setStatus(pc.current.connectionState);
     };
 
     pc.current.onicecandidate = (e) => {
@@ -399,9 +381,6 @@ function Room() {
         readSlice(offset);
       } else {
         channel.current.send("EOF");
-
-        pc.current?.close();
-        pc.current = null;
       }
     };
 
@@ -439,6 +418,7 @@ function Room() {
                 zIndex: 999
               }}
             >
+              <p>Status: {status}</p>
               <Suspense fallback={null}>
                 <CustomToast
                   title={`Receiving Files (${receiving.length})`}
@@ -542,15 +522,7 @@ function Room() {
                       return;
                     }
 
-                    if(targetId.current !== p.socket_id) {
-                      startConnection(p.socket_id);  
-                    } else {
-                      // New Connection
-                      pc.current?.close();
-                      pc.current = null;
-                      startConnection(p.socket_id);
-                    }
-
+                    startConnection(p.socket_id);
                     fileInputRef.current.click();
                   }}
                 >
@@ -562,7 +534,9 @@ function Room() {
                       size={size}
                       variant="beam"
                     />
-                    <p className="text-center small">{p.user_id === user_id ? 'You' : username}</p>
+                    <p className="text-center small">
+                      {p.user_id === user_id ? 'You' : p.username}
+                    </p>
                   </div>
                 </div>
               ))}
