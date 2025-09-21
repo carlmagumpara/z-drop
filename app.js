@@ -76,30 +76,34 @@ io.on('connection', (socket) => {
     io.emit("update_users", Array.from(onlineUsers.keys()));
   });
 
-  socket.on("create-private-room", async ({ roomId, password, owner_id }) => {
-    await client.set(`rooms:private-${roomId}`, JSON.stringify({ 
-      roomId, 
-      password,
-      owner_id
-    }));
+  socket.on("create-room", async ({ room_id, name, password, owner_id }) => {
+    await redis.hset(`room:${room_id}`, {
+      room_id,
+      name,
+      password, 
+      owner_id,
+      created_at: Date.now()
+    });
 
-    console.log(`private room created: ${roomId}:${password}`);
+    console.log(`Room created: ${room_id}:${password}`);
   });
 
-  socket.on("join-room", async ({ roomId, password, user_id, username }) => {
-    const private_room = await client.get(`rooms:private-${roomId}`);
+  socket.on("join-room", async ({ room_id, password, user_id, username }) => {
+    const room = await redis.hgetall(`room:${room_id}`); 
 
-    if(private_room && !private_room.owner_id !== user_id) {
+    if(room?.password && !room?.owner_id !== user_id) {
       if(!password) {
         socket.emit("room-status", {
+          data: {},
           status: "enter-password"
         });
 
         return;
       }
       
-      if(private_room.password !== password) {
+      if(room.password !== password) {
         socket.emit("room-status", {
+          data: {},
           status: "wrong-password"
         });
 
@@ -107,22 +111,23 @@ io.on('connection', (socket) => {
       }
     }
 
-    console.log(`${username} joined room: ${roomId}`);
-    socket.join(roomId);
+    console.log(`${username} joined room: ${room_id}`);
+    socket.join(room_id);
     // check room if theres a password
     socket.emit("room-status", {
+      data: room,
       status: "success"
     });
     // if success
-    socket.to(roomId).emit("joined", {
+    socket.to(room_id).emit("joined", {
       user_id, 
       username,
       socket_id: socket.id
     });
     socket.data.username = username;
     socket.data.user_id = user_id;
-    const messages = await client.lRange(`chat:messages-${roomId}`, 0, -1);
-    const clients = io.sockets.adapter.rooms.get(roomId);
+    const messages = await client.lRange(`chat:messages-${room_id}`, 0, -1);
+    const clients = io.sockets.adapter.rooms.get(room_id);
     const users = [];
 
     if (clients) {
@@ -132,28 +137,28 @@ io.on('connection', (socket) => {
       }
     }
 
-    io.to(roomId).emit("room-users", users);
+    io.to(room_id).emit("room-users", users);
     socket.emit("chat-history", messages.map((m) => JSON.parse(m)));
   });
 
-  socket.on("leave-room", ({ roomId, user_id, username }) => {
-    socket.leave(roomId);
-    console.log(`${username} left room: ${roomId}`);
-    socket.to(roomId).emit("left", { user_id, username });
+  socket.on("leave-room", ({ room_id, user_id, username }) => {
+    socket.leave(room_id);
+    console.log(`${username} left room: ${room_id}`);
+    socket.to(room_id).emit("left", { user_id, username });
   });
 
-  socket.on("on-message", async ({ roomId, type, data }) => {
-    io.to(roomId).emit("message", {
+  socket.on("on-message", async ({ room_id, type, data }) => {
+    io.to(room_id).emit("message", {
       type,
       data,
     });
 
     if(type === 'message') {
-      await client.rPush(`chat:messages-${roomId}`, JSON.stringify(data));
+      await client.rPush(`chat:messages-${room_id}`, JSON.stringify(data));
     }
 
     if(type === 'read') {
-      const messages = await client.lRange(`chat:messages-${roomId}`, 0, -1);
+      const messages = await client.lRange(`chat:messages-${room_id}`, 0, -1);
 
       const index = messages.findIndex(message=> {
         const parsed = JSON.parse(message);
@@ -168,7 +173,7 @@ io.on('connection', (socket) => {
           data
         ];
         await client.lSet(
-          `chat:messages-${roomId}`, 
+          `chat:messages-${room_id}`, 
           index, 
           JSON.stringify(updated)
         );
@@ -176,7 +181,7 @@ io.on('connection', (socket) => {
     }
 
     if(type === 'react') {
-      const messages = await client.lRange(`chat:messages-${roomId}`, 0, -1);
+      const messages = await client.lRange(`chat:messages-${room_id}`, 0, -1);
 
       const index = messages.findIndex(message=> {
         const parsed = JSON.parse(message);
@@ -202,7 +207,7 @@ io.on('connection', (socket) => {
         }
 
         await client.lSet(
-          `chat:messages-${roomId}`, 
+          `chat:messages-${room_id}`, 
           index, 
           JSON.stringify(updated)
         );

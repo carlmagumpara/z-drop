@@ -10,7 +10,7 @@ function App() {
     <Routes>        
       <Route element={<Wrapper />}>
         <Route path="/" element={<Landing />} />
-        <Route path="/r/:roomId" element={<Room />} />
+        <Route path="/r/:room_id" element={<Room />} />
       </Route>
     </Routes>
   )

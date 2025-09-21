@@ -63,7 +63,17 @@ function Landing() {
               <div className="mb-2">
                 <Button
                   size="lg"
-                  onClick={() => navigate(`/r/${uuidv4()}`)}
+                  onClick={() => {
+                    const room_id = uuidv4();
+
+                    socket.emit("create-room", {
+                      room_id,
+                      name: 'kung ano ano lang',
+                      password: null,
+                      owner_id: user_id,
+                    });
+                    navigate(`/r/${room_id}`);
+                  }}
                 >
                   <BsFillSendArrowUpFill /> Get Started
                 </Button>
@@ -73,14 +83,15 @@ function Landing() {
                   variant="link"
                   className="text-dark text-decoration-none"
                   onClick={() => {
-                    const roomId = uuidv4();
+                    const room_id = uuidv4();
 
-                    socket.emit("create-private-room", {
-                      roomId,
+                    socket.emit("create-room", {
+                      room_id,
+                      name: 'kung ano ano lang',
                       password: '09071995',
                       owner_id: user_id,
                     });
-                    navigate(`/r/${roomId}`);
+                    navigate(`/r/${room_id}`);
                   }}
                 >
                   <IoDocumentLock /> Create Room with Password

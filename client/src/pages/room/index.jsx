@@ -18,7 +18,7 @@ const CustomToast = lazy(() => import('./toast'));
 const Chat = lazy(() => import('./chat'));
 
 function Room() {
-  const { roomId } = useParams();
+  const { room_id } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const { handleShow } = useGlobalModal();
   const messageApi = useMessage();
@@ -28,7 +28,6 @@ function Room() {
   const [receiving, setReceiving] = useState([]);
   const [sending, setSending] = useState([]);
   const fileInputRef = useRef(null);
-
   const pc = useRef(null);
   const [logs, setLogs] = useState([]);
   const channel = useRef(null);
@@ -36,6 +35,7 @@ function Room() {
   const [targetIdChanges, setTargetIdChanges] = useState(null);
   const [positions, setPositions] = useState([]);
   const sounds = useSound();
+  const [room_status, setRoomStatus] = useState(null);
 
   const size = 60;
   const maxTries = 500;
@@ -236,15 +236,9 @@ function Room() {
         url: `${window.location.href}?modal=false`
       });
     }
-  
-    socket.emit("join-room", { 
-      roomId, 
-      username, 
-      user_id,
-    });  
 
     const handleBeforeUnload = (event) => socket.emit("leave-room", { 
-      roomId, 
+      room_id, 
       username, 
       user_id,
     });
@@ -305,10 +299,16 @@ function Room() {
   };
 
   useEffect(() => {
+    socket.emit("join-room", { 
+      room_id, 
+      username, 
+      user_id,
+    });
+
     socket.on("joined", (data) => {
       messageApi.info(`${data.username} joined the room`);
       socket.emit("on-message", {
-        roomId,
+        room_id,
         type: 'message',
         data: {
           id: uuidv4(),
@@ -319,7 +319,7 @@ function Room() {
     });
 
     socket.on("room-status", (data) => {
-      console.log(data);
+      setRoomStatus(data.status);
     });
 
     socket.on("left", (data) => {
@@ -328,7 +328,7 @@ function Room() {
       messageApi.info(`${data.username} left the room`);
 
       socket.emit("on-message", {
-        roomId,
+        room_id,
         type: 'message',
         data: {
           id: uuidv4(),
@@ -347,7 +347,7 @@ function Room() {
       socket.off("left");
       socket.off("room-users");
     };
-  }, [username]);
+  }, []);
 
   return (
     <>
@@ -493,7 +493,7 @@ function Room() {
       </div>
       <Suspense fallback={null}>
         <Chat
-          roomId={roomId}
+          room_id={room_id}
         />
       </Suspense>
     </>

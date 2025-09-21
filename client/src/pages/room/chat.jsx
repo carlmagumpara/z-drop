@@ -14,7 +14,7 @@ import { v4 as uuidv4 } from 'uuid';
 import RightMessage from './right-message';
 import LeftMessage from './left-message';
 
-function Chat({ roomId = '' }) {
+function Chat({ room_id = '' }) {
   const sounds = useSound();
   const { user_id, username } = usePresence();
   const {
@@ -187,7 +187,7 @@ function Chat({ roomId = '' }) {
 
   const onSubmit = async (values, { setSubmitting, setErrors, resetForm }) => {
     socket.emit("on-message", {
-      roomId,
+      room_id,
       type: 'message',
       data: {
         ...values,
@@ -313,12 +313,12 @@ function Chat({ roomId = '' }) {
                             {item.user_id === user_id ? (                            
                               <RightMessage
                                 item={item}
-                                roomId={roomId}
+                                room_id={room_id}
                               />
                             ) : (
                               <LeftMessage 
                                 item={item}
-                                roomId={roomId}
+                                room_id={room_id}
                               />
                             )}
                           </>
@@ -374,7 +374,7 @@ function Chat({ roomId = '' }) {
                       value={values.message}
                       onChange={event => {
                         socket.emit("on-message", {
-                          roomId,
+                          room_id,
                           type: 'typing',
                           data: {
                             system: false,

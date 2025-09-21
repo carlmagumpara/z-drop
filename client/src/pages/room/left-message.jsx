@@ -9,7 +9,7 @@ import { socket } from '@/shared/socket';
 import useSound from './sounds';
 import AddReaction from '@/assets/add-reaction.png';
 
-function LeftMessage({ item, roomId }) {
+function LeftMessage({ item, room_id }) {
   const sounds = useSound();
   const [hover, setHover] = useState(false);
   const [ref, isVisible] = useOnScreen({
@@ -20,7 +20,7 @@ function LeftMessage({ item, roomId }) {
   useEffect(() => {
     if(isVisible && !item.readers.find(user => user.user_id === user_id)) {
       socket.emit("on-message", {
-        roomId,
+        room_id,
         type: 'read',
         data: {
           message_id: item.id,
@@ -108,7 +108,7 @@ function LeftMessage({ item, roomId }) {
               onReactionClick={emojiObject => {
                 const emoji = emojiObject.emoji;
                 socket.emit("on-message", {
-                  roomId,
+                  room_id,
                   type: 'react',
                   data: {
                     message_id: item.id,
