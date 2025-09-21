@@ -86,15 +86,29 @@ io.on('connection', (socket) => {
     console.log(`private room created: ${roomId}:${password}`);
   });
 
-  socket.on("join-room", async ({ roomId, user_id, username }) => {
-    socket.join(roomId);
+  socket.on("join-room", async ({ roomId, password, user_id, username }) => {
+    const private_room = await client.get(`rooms:private-${roomId}`);
+
+    if(private_room && !private_room.owner_id !== user_id) {
+      if(!password) {
+        socket.emit("room-status", {
+          status: "enter-password"
+        });
+
+        return;
+      }
+      
+      if(private_room.password !== password) {
+        socket.emit("room-status", {
+          status: "wrong-password"
+        });
+
+        return;
+      }
+    }
+
     console.log(`${username} joined room: ${roomId}`);
-
-    const is_private_room = await client.get(`rooms:private-${roomId}`);
-    if(is_private_room) {
-      console.log('is_private_room', is_private_room);
-    }    
-
+    socket.join(roomId);
     // check room if theres a password
     socket.emit("room-status", {
       status: "success"
