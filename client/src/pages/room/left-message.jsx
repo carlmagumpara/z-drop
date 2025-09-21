@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Image } from 'react-bootstrap';
 import Avatar from 'boring-avatars';
-import moment from 'moment';
 import Picker from 'emoji-picker-react';
 import useOnScreen from '@/hooks/use-on-screen';
 import { usePresence } from '@/contexts/presence';
@@ -31,15 +30,6 @@ function LeftMessage({ item, room_id }) {
     }
   }, [isVisible]);
 
-  const formatTime = (date) => {
-    const diffInSeconds = moment().diff(moment(date), "seconds");
-    if (diffInSeconds < 5) {
-      return "just now";
-    }
-
-    return moment(date).fromNow();
-  };
-
   return (
     <div 
       ref={ref}
@@ -59,19 +49,24 @@ function LeftMessage({ item, room_id }) {
           <p>{item.message}</p>
           <div className="meta left">
             <p className="mb-0">{item.username}</p>
-            <p className="mb-0">{formatTime(item.dateTime)}</p>
+            <p className="mb-0">{item.dateTime}</p>
           </div>
         </div>
         <div className="d-flex justify-content-between align-items-center pt-1">
           {item.readers.length ? (
             <div className="d-flex justify-content-start align-items gap-1">
               <span className="small">✓</span> {item.readers.map(reader => (
-                <Avatar
-                  key={reader}
-                  name={reader}
-                  size={15}
-                  variant="beam"
-                />
+                <div 
+                  className="animate__animated animate__fadeInDown animate__faster"
+                  key={reader.user_id}
+                  id={`${reader.user_id}-chat-avatar`}
+                >
+                  <Avatar
+                    name={reader.username}
+                    size={15}
+                    variant="beam"
+                  />
+                </div>
               ))}
             </div>
           ) : <div />}

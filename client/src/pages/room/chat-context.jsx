@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react';
+import moment from 'moment';
 
 const Context = createContext();
 
@@ -18,6 +19,15 @@ function ChatProvider({ children }) {
       setUnread(0);
     }
   }, [chat]);
+
+  const formatTime = (date) => {
+    const diffInSeconds = moment().diff(moment(date), "seconds");
+    if (diffInSeconds < 5) {
+      return "just now";
+    }
+
+    return moment(date).fromNow();
+  };
 
   const mergeConsecutiveSystemMessages = (data) => {
     const result = [];
@@ -48,16 +58,7 @@ function ChatProvider({ children }) {
     return result;
   };
 
-  // const formatTime = (date) => {
-  //   const diffInSeconds = moment().diff(moment(date), "seconds");
-  //   if (diffInSeconds < 5) {
-  //     return "just now";
-  //   }
-
-  //   return moment(date).fromNow();
-  // };
-
-  function formatMessages(messages) {
+  const formatMessages = (messages) => {
     const seenPerSender = {};
 
     const data = messages
@@ -67,7 +68,8 @@ function ChatProvider({ children }) {
         if (msg.system) {
           return { 
             ...msg,
-            readers: [] 
+            readers: [],
+            dateTime: formatTime(msg.dateTime),
           };
         }
 
@@ -90,6 +92,7 @@ function ChatProvider({ children }) {
           ...msg, 
           readers,
           reactions,
+          dateTime: formatTime(msg.dateTime),
         };
       })
       .reverse();

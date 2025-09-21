@@ -9,8 +9,6 @@ function QRCode({ url = '', data = {} }) {
   const messageApi = useMessage();
   const { show, handleClose } = useGlobalModal();
 
-  console.log(data.password);
-
   const copyToClipBoard = async text => {
     try {
       await navigator.clipboard.writeText(text);

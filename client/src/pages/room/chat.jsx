@@ -62,7 +62,10 @@ function Chat({ room_id = '' }) {
       if(isAtBottom) {
         setUnread(0);
       }
+
       setIsBottom(isAtBottom);
+
+      console.log('isAtBottom', isAtBottom);
     };
 
      chatMessagesRef.current?.addEventListener("scroll", handleScroll);
@@ -118,13 +121,15 @@ function Chat({ room_id = '' }) {
           }
           break;
         case 'read':
-          setMessages(prevState => prevState.map(item => item.id === data.data.message_id ? {
-            ...item,
-            readers: [
-              ...(item.readers ?? []), 
-              data.data
-            ]
-          } : item));
+          setTimeout(() => {
+            setMessages(prevState => prevState.map(item => item.id === data.data.message_id ? {
+              ...item,
+              readers: [
+                ...(item.readers ?? []), 
+                data.data
+              ]
+            } : item));
+          }, 0);
           break;
         case 'react':
           setMessages(prevState =>
