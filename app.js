@@ -52,16 +52,18 @@ app.use(cors(corsConfig));
 app.use(express.static(join(__dirname, "client", "dist")));
 
 app.post('/api/create-room', async (req, res) => {
-  const body = req.body;
 
-  await redis.hSet(`room:${body.room_id}`, {
-    ...body,
-    created_at: Date.now()
-  });
-  const room = await redis.hGetAll(`room:${body.room_id}`);
+  console.log(req.body);
+  // const body = req.body;
+
+  // await redis.hSet(`room:${body.room_id}`, {
+  //   ...body,
+  //   created_at: Date.now()
+  // });
+  // const room = await redis.hGetAll(`room:${body.room_id}`);
 
   res.json({
-    data: room,
+    // data: room,
     message: "Room Created!",
   });
 });
@@ -109,11 +111,9 @@ io.on('connection', (socket) => {
   // });
 
   socket.on("join-room", async ({ room_id, password, user_id, username }) => {
-    const room = await redis.hGetAll(`room:${room_id}`);
+    const exists = await redis.exists(`room:${room_id}`);
 
-    console.log('room', room);
-
-    if(!room) {
+    if(!exists) {
       socket.emit("room-status", {
         data: {},
         message: "Room not found!",
@@ -121,6 +121,8 @@ io.on('connection', (socket) => {
       });
       return;
     }
+
+    const room = await redis.hGetAll(`room:${room_id}`);
 
     if(room?.password && !room?.owner_id !== user_id) {
       if(!password) {
