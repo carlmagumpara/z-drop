@@ -102,6 +102,7 @@ io.on('connection', (socket) => {
         message: "Room not found!",
         status: "not-found"
       });
+      return;
     }
 
     if(room?.password && !room?.owner_id !== user_id) {
