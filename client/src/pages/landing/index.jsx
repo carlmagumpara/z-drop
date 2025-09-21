@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { Container, Button } from 'react-bootstrap';
 import { IoHeart } from 'react-icons/io5';
+import { BsFillSendArrowUpFill } from 'react-icons/bs';
+import { IoDocumentLock } from 'react-icons/io5';
 import { v4 as uuidv4 } from 'uuid';
 import CountUp from 'react-countup';
 import { usePresence } from '@/contexts/presence';
@@ -57,13 +59,26 @@ function Landing() {
               <h3 className="mb-5 animate__animated animate__flipInX animate__delay-2s">
                 No limits, No delays — Share and Talk instantly!
               </h3>
-              <Button
-                size="lg"
-                className="mb-2"      
-                onClick={() => navigate(`/r/${uuidv4()}`)}
-              >
-                Start Transferring Files
-              </Button>
+              <div className="mb-2">
+                <Button
+                  size="lg"
+                  onClick={() => navigate(`/r/${uuidv4()}`)}
+                >
+                  <BsFillSendArrowUpFill /> Get Started
+                </Button>
+              </div>
+              <div className="mb-2">
+                <Button
+                  variant="link"
+                  className="text-dark text-decoration-none"
+                  onClick={() => {
+
+                    // navigate(`/r/${uuidv4()}`);
+                  }}
+                >
+                  <IoDocumentLock /> Create Room with Password
+                </Button>
+              </div>
               <div className="d-flex justify-content-center align-items-center gap-3">
                 <div>
                   <p>Total Files Sent</p>
@@ -107,7 +122,7 @@ function Landing() {
               top: positions[index][0],
               left: positions[index][1],
               width: "60px",
-              opacity: 0.70,
+              opacity: 0.30,
               pointerEvents: "none",
               animation: `float ${positions[index][2]}s ease-in-out infinite`,
               zIndex: 998
