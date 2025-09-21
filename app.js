@@ -108,7 +108,7 @@ io.on('connection', (socket) => {
     const room = await redis.hGetAll(`room:${room_id}`);
 
     if(room.password !== '' && room.owner_id !== user_id) {
-      const has_access = await client.exists(`room-passwords:${user_id}-${room_id}`);
+      const has_access = await redis.exists(`room-passwords:${user_id}-${room_id}`);
 
       if(!has_access) {
         if(!password) {
@@ -130,7 +130,7 @@ io.on('connection', (socket) => {
 
           return;
         }
-        await client.set(`room-passwords:${user_id}-${room_id}`, true, { 
+        await redis.set(`room-passwords:${user_id}-${room_id}`, true, { 
           EX: 60 * 60 * 60 
         });
       }
