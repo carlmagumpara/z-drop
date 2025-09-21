@@ -8,7 +8,7 @@ import { socket } from '@/shared/socket';
 import useSound from './sounds';
 import AddReaction from '@/assets/add-reaction.png';
 
-function LeftMessage({ item, room_id }) {
+function LeftMessage({ item, room_id, isLast }) {
   const sounds = useSound();
   const [hover, setHover] = useState(false);
   const [ref, isVisible] = useOnScreen({
@@ -35,7 +35,7 @@ function LeftMessage({ item, room_id }) {
   return (
     <div 
       ref={ref}
-      className="message left position-relative" 
+      className={`message left position-relative ${isLast ? 'animate__animated animate__fadeInUp' : ''}`}
     >
       <div className="avatar" aria-hidden="true">
         <Avatar

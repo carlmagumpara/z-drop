@@ -7,14 +7,14 @@ import { socket } from '@/shared/socket';
 import useSound from './sounds';;
 import AddReaction from '@/assets/add-reaction.png';
 
-function RightMessage({ item, room_id }) {
+function RightMessage({ item, room_id, isLast }) {
   const sounds = useSound();
   const [hover, setHover] = useState(false);
   const { user_id, username } = usePresence();
 
   return (
     <div 
-      className="message right position-relative"
+      className={`message right position-relative ${isLast ? 'animate__animated animate__fadeInUp' : ''}`}
     >
       <div 
         className="avatar"

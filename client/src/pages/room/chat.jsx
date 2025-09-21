@@ -292,46 +292,52 @@ function Chat({ room_id = '' }) {
                   <div 
                     className="messages p-3"
                   >
-                    {messages.map(item => (
-                      <Fragment key={item.id}>
-                        {item.system ? (
-                          <>
-                            {item.messages.length === 1 ? (
-                              <p style={{ fontSize: 11 }} className="text-center text-secondary mb-0">
-                                {item.messages[0]}
-                              </p>
-                            ) : (
-                            <details>
-                              <summary>View Updates</summary>
-                              {item.messages.map((message, index) => (
-                                <p 
-                                  key={index}
-                                  style={{ fontSize: 11 }} 
-                                  className="text-center text-secondary mb-0"
-                                >
-                                  {message}
+                    {messages.map((item, index) => {
+                      const isLast = index === messages.length - 1;
+
+                      return (
+                        <Fragment key={item.id}>
+                          {item.system ? (
+                            <>
+                              {item.messages.length === 1 ? (
+                                <p style={{ fontSize: 11 }} className="text-center text-secondary mb-0">
+                                  {item.messages[0]}
                                 </p>
-                              ))}
-                            </details>
-                            )}
-                          </>
-                        ) : (
-                          <>
-                            {item.user_id === user_id ? (                            
-                              <RightMessage
-                                item={item}
-                                room_id={room_id}
-                              />
-                            ) : (
-                              <LeftMessage 
-                                item={item}
-                                room_id={room_id}
-                              />
-                            )}
-                          </>
-                        )}
-                      </Fragment>
-                    ))}
+                              ) : (
+                              <details>
+                                <summary>View Updates</summary>
+                                {item.messages.map((message, index) => (
+                                  <p 
+                                    key={index}
+                                    style={{ fontSize: 11 }} 
+                                    className="text-center text-secondary mb-0"
+                                  >
+                                    {message}
+                                  </p>
+                                ))}
+                              </details>
+                              )}
+                            </>
+                          ) : (
+                            <>
+                              {item.user_id === user_id ? (                            
+                                <RightMessage
+                                  item={item}
+                                  room_id={room_id}
+                                  isLast={isLast}
+                                />
+                              ) : (
+                                <LeftMessage 
+                                  item={item}
+                                  room_id={room_id}
+                                  isLast={isLast}
+                                />
+                              )}
+                            </>
+                          )}
+                        </Fragment>
+                      )
+                    })}
                     <div ref={bottomRef} />
                   </div>
                 </div>
