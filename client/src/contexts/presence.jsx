@@ -20,29 +20,26 @@ function PresenceProvider({ children }) {
   });
 
   useEffect(() => {
+    if(!user_id || !username) {
+      const _user_id = uuidv4();
+      const _username = `${generateName()}_${Math.floor(Math.random() * 1000)}`.replace(/ /g,"_");
+
+      localStorage.setItem("user_id", _user_id);
+      localStorage.setItem("username", _username);
+      localStorage.setItem("auto_download", true);
+
+      setUserId(_user_id);
+      setUserName(_username);
+      setAutoDownload(true);
+
+      return;
+    }
+
     const onConnect = () => {
-      if(!user_id || !username) {
-        const _user_id = uuidv4();
-        const _username = `${generateName()}_${Math.floor(Math.random() * 1000)}`.replace(/ /g,"_");
-
-        localStorage.setItem("user_id", _user_id);
-        localStorage.setItem("username", _username);
-        localStorage.setItem("auto_download", true);
-
-        setUserId(_user_id);
-        setUserName(_username);
-        setAutoDownload(true);
-
-        socket.emit("user_online", {
-          username: _username,
-          user_id: _user_id,
-        });
-      } else {
-        socket.emit("user_online", {
-          user_id,
-          username
-        });
-      }
+      socket.emit("user_online", {
+        user_id,
+        username
+      });
       setIsConnected(true);
     };
 
@@ -92,8 +89,8 @@ function PresenceProvider({ children }) {
       value={{
         user_id,
         username,
-        setUserName,
         auto_dowload, 
+        setUserName,
         setAutoDownload,
         users,
         analytics,
