@@ -1,15 +1,12 @@
-import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { Container, Button } from 'react-bootstrap';
 import { IoHeart } from 'react-icons/io5';
 import { BsFillSendArrowUpFill } from 'react-icons/bs';
 import { IoDocumentLock } from 'react-icons/io5';
-import { v4 as uuidv4 } from 'uuid';
 import CountUp from 'react-countup';
-import axios from '@/shared/axios';
-import { socket } from '@/shared/socket';
 import { usePresence } from '@/contexts/presence';
-import Loading from '@/shared/loading';
+import { useGlobalModal, MODAL_TYPES } from '@/contexts/global-modal';
+import { createRoom } from '@/shared/api';
 
 const imageModules = import.meta.glob('@/assets/formats/*.{png,jpg,jpeg,gif,svg}', { 
   eager: true, 
@@ -32,30 +29,21 @@ const positions = [
 
 function Landing() {
   const navigate = useNavigate();
+  const { handleShow } = useGlobalModal();
   const { user_id, users, analytics } = usePresence();
-  const [loading, setLoading] = useState(false);
 
-  const createRoom = async password => {
-    setLoading(true);
-    const room_id = uuidv4();
+  const createPublicRoom = async () => {
     try {
-      const response = await axios.post('/create-room', {
-        room_id,
-        password,
-        name: 'kung ano ano lang',
-        owner_id: user_id,
+      const data = await createRoom({
+        name: '',
+        password: '',
+        owner_id: user_id
       });
-      setLoading(false);
-      navigate(`/r/${room_id}`);
+      navigate(`/r/${data.data.room_id}`);
     } catch (error) {
-      setLoading(false);
       console.log(error);
     }
   };
-
-  if(loading) {
-    return <Loading />;
-  }
 
   return (
     <div className="radar-container">
@@ -80,7 +68,7 @@ function Landing() {
               <div className="mb-2">
                 <Button
                   size="lg"
-                  onClick={() => createRoom('')}
+                  onClick={createPublicRoom}
                 >
                   <BsFillSendArrowUpFill /> Get Started
                 </Button>
@@ -89,9 +77,9 @@ function Landing() {
                 <Button
                   variant="link"
                   className="text-dark text-decoration-none"
-                  onClick={() => createRoom('09071995')}
+                  onClick={() => handleShow(MODAL_TYPES.CREATE_PRIVATE_ROOM)}
                 >
-                  <IoDocumentLock /> Create Room with Password
+                  <IoDocumentLock /> Create Private Room
                 </Button>
               </div>
               <div className="d-flex justify-content-center align-items-center gap-3">

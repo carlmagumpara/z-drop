@@ -41,6 +41,7 @@ function Room() {
   const [positions, setPositions] = useState([]);
   const sounds = useSound();
   const [room_status, setRoomStatus] = useState(null);
+  const formikRef = useRef(null);
 
   const size = 60;
   const maxTries = 500;
@@ -246,13 +247,14 @@ function Room() {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [room_status]);
 
-  // useEffect(() => {
-  //   if(room_status?.status === 'success' && searchParams.get('modal') !== 'false') {
-  //     handleShow(MODAL_TYPES.QR_CODE, {
-  //       url: `${window.location.href}?modal=false`
-  //     });
-  //   }
-  // }, [room_status]);
+  useEffect(() => {
+    if(room_status?.status === 'success' && searchParams.get('modal') !== 'false') {
+      handleShow(MODAL_TYPES.QR_CODE, {
+        url: `${window.location.href}?modal=false`,
+        data: room_status.data
+      });
+    }
+  }, [room_status]);
 
   useEffect(() => {
     socket.emit("join-room", { 
@@ -275,10 +277,14 @@ function Room() {
     });
 
     socket.on("room-status", (data) => {
-      console.log(data);
       if(data.status === 'not-found') {
         messageApi.info(data.message);
         navigate('/');
+      } else if(data.status === 'wrong-password') {
+        formikRef.current?.setErrors({
+          password: data.message
+        });
+        setRoomStatus(data);
       } else {
         setRoomStatus(data);
       }
@@ -381,13 +387,10 @@ function Room() {
     });
   };
 
-
   if(!room_status) {
     return <Loading />;
   }
-
-  console.log('room_status', room_status);
-
+  
   return (
     <>
       <div className="radar vh-100 w-100 position-relative">
@@ -440,7 +443,8 @@ function Room() {
                 size="lg"
                 variant="light"
                 onClick={() => handleShow(MODAL_TYPES.QR_CODE, {
-                  url: `${window.location.href}?modal=false`
+                  url: `${window.location.href}?modal=false`,
+                  data: room_status.data
                 })}
               >
                 <FaQrcode />
@@ -539,6 +543,7 @@ function Room() {
           </>
         ) : (
           <Formik
+            innerRef={formikRef}
             initialValues={{
               password: '',
             }}
@@ -592,7 +597,7 @@ function Room() {
                           type="submit"
                           variant="danger"
                         >
-                          {isSubmitting ? 'PLEASE WAIT...' : 'Submit'}
+                          {isSubmitting ? 'Please wait...' : 'Submit'}
                         </Button>
                       </div>
                     </div>

@@ -115,7 +115,7 @@ function Settings({ formValues = {} }) {
                   type="submit"
                   variant="danger"
                 >
-                  {isSubmitting ? 'PLEASE WAIT...' : 'Update'}
+                  {isSubmitting ? 'Please wait...' : 'Update'}
                 </Button>
               </Modal.Footer>
             </Form>

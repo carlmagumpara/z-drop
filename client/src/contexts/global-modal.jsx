@@ -4,6 +4,7 @@ const Context = createContext();
 const MODAL_COMPONENTS = {
   QR_CODE: lazy(() => import('./modals/qr-code')),
   SETTINGS: lazy(() => import('./modals/settings')),
+  CREATE_PRIVATE_ROOM: lazy(() => import('./modals/create-private-room')),
 };
 
 export const MODAL_TYPES = Object.keys(MODAL_COMPONENTS).reduce((acc, key) => {

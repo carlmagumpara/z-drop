@@ -5,14 +5,16 @@ import { FaCopy } from 'react-icons/fa';
 import { useGlobalModal, MODAL_TYPES } from '../global-modal';
 import { useMessage } from '../message';
 
-function QRCode({ url = '' }) {
+function QRCode({ url = '', data = {} }) {
   const messageApi = useMessage();
   const { show, handleClose } = useGlobalModal();
 
-  const copyToClipBoard = async () => {
+  console.log(data.password);
+
+  const copyToClipBoard = async text => {
     try {
-      await navigator.clipboard.writeText(url);
-      messageApi.success(`${url} copied!`);
+      await navigator.clipboard.writeText(text);
+      messageApi.success(`${text} copied!`);
     } catch (err) {
       messageApi.error('Failed to copy!');
     }
@@ -54,12 +56,29 @@ function QRCode({ url = '' }) {
               />
               <Button 
                 variant="outline-secondary"
-                onClick={copyToClipBoard}
+                onClick={() => copyToClipBoard(url)}
               >
                 <FaCopy />
               </Button>
             </InputGroup>
           </Form.Group>
+          {data.password ? (
+          <Form.Group className="mb-3" >
+            <Form.Label>Room Password</Form.Label>
+            <InputGroup>
+              <Form.Control
+                value={data.password}
+                readOnly
+              />
+              <Button 
+                variant="outline-secondary"
+                onClick={() => copyToClipBoard(data.password)}
+              >
+                <FaCopy />
+              </Button>
+            </InputGroup>
+          </Form.Group>
+          ) : null}
         </Form>
       </Modal.Body>
     </Modal>
