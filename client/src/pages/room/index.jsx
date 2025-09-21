@@ -45,6 +45,7 @@ function Room() {
   const [status, setStatus] = useState("disconnected");
 
   // "connected"
+  // "connecting"
   // "disconnected"
   // "failed"
   // "closed"
@@ -208,6 +209,11 @@ function Room() {
 
   useEffect(() => {
     socket.on("offer", async ({ from, sdp }) => {
+      if(pc.current) {
+        pc.current?.close();
+        pc.current = null;
+      }
+      
       targetId.current = from;
       setTargetIdChanges(from);
       pc.current = new RTCPeerConnection(iceConfig);
@@ -259,9 +265,6 @@ function Room() {
               socket.emit("files-counter", { 
                 status: 'success',
               });
-
-              pc.current?.close();
-              pc.current = null;
             }
           } else {
             received.push(msg.data);
@@ -311,6 +314,11 @@ function Room() {
   }, []);
 
   const startConnection = async (peerId) => {
+    if(pc.current) {
+      pc.current?.close();
+      pc.current = null;
+    }
+
     targetId.current = peerId;
     setTargetIdChanges(peerId);
 
