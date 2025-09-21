@@ -130,7 +130,7 @@ io.on('connection', (socket) => {
 
           return;
         }
-        await redis.set(`room-passwords:${user_id}-${room_id}`, true, { 
+        await redis.set(`room-passwords:${user_id}-${room_id}`, 'true', { 
           EX: 60 * 60 * 60 
         });
       }
