@@ -58,7 +58,7 @@ app.post('/api/create-room', async (req, res) => {
     ...body,
     created_at: Date.now()
   });
-  const room = await redis.hGetAll(`room:${room_id}`);
+  const room = await redis.hGetAll(`room:${body.room_id}`);
 
   res.json({
     data: room,

@@ -6,6 +6,7 @@ import { BsFillSendArrowUpFill } from 'react-icons/bs';
 import { IoDocumentLock } from 'react-icons/io5';
 import { v4 as uuidv4 } from 'uuid';
 import CountUp from 'react-countup';
+import axios from '@/shared/axios';
 import { socket } from '@/shared/socket';
 import { usePresence } from '@/contexts/presence';
 import Loading from '@/shared/loading';
@@ -34,18 +35,20 @@ function Landing() {
   const { user_id, users, analytics } = usePresence();
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    // socket.on("room-status", (data) => {
-    //   console.log(data.data.room_id);
-
-    //   navigate(`/r/${room_id}`);
-    // });
-
-    // return () => {
-    //   socket.off("room-status");
-    // };
-  }, []);
-
+  const createRoom = async () => {
+    const room_id = uuidv4();
+    try {
+      const response = await axios.post('/create-room', {
+        room_id,
+        name: 'kung ano ano lang',
+        password: '09071995',
+        owner_id: user_id,
+      });
+      console.log('Data fetched successfully:', response.data);
+    } catch (error) {
+      console.log(error);
+    }
+  };
 
   return (
     <div className="radar-container">
@@ -70,16 +73,7 @@ function Landing() {
               <div className="mb-2">
                 <Button
                   size="lg"
-                  onClick={() => {
-                    const room_id = uuidv4();
-
-                    // socket.emit("create-room", {
-                    //   room_id,
-                    //   name: 'kung ano ano lang',
-                    //   password: null,
-                    //   owner_id: user_id,
-                    // });
-                  }}
+                  onClick={createRoom}
                 >
                   <BsFillSendArrowUpFill /> Get Started
                 </Button>
@@ -88,16 +82,7 @@ function Landing() {
                 <Button
                   variant="link"
                   className="text-dark text-decoration-none"
-                  onClick={() => {
-                    const room_id = uuidv4();
-
-                    // socket.emit("create-room", {
-                    //   room_id,
-                    //   name: 'kung ano ano lang',
-                    //   password: '09071995',
-                    //   owner_id: user_id,
-                    // });
-                  }}
+                  onClick={createRoom}
                 >
                   <IoDocumentLock /> Create Room with Password
                 </Button>
