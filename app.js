@@ -77,7 +77,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on("create-room", async ({ room_id, name, password, owner_id }) => {
-    await redis.hset(`room:${room_id}`, {
+    await redis.hSet(`room:${room_id}`, {
       room_id,
       name,
       password, 
@@ -94,7 +94,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on("join-room", async ({ room_id, password, user_id, username }) => {
-    const room = await redis.hgetall(`room:${room_id}`);
+    const room = await redis.hGetAll(`room:${room_id}`);
 
     if(!room) {
       socket.emit("room-status", {

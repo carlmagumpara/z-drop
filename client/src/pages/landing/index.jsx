@@ -75,7 +75,7 @@ function Landing() {
                       password: null,
                       owner_id: user_id,
                     });
-                    navigate(`/r/${room_id}`);
+                    // navigate(`/r/${room_id}`);
                   }}
                 >
                   <BsFillSendArrowUpFill /> Get Started
@@ -94,7 +94,7 @@ function Landing() {
                       password: '09071995',
                       owner_id: user_id,
                     });
-                    navigate(`/r/${room_id}`);
+                    // navigate(`/r/${room_id}`);
                   }}
                 >
                   <IoDocumentLock /> Create Room with Password
