@@ -111,127 +111,13 @@ function Room() {
   }, [users]);
 
   useEffect(() => {
-    pc.current = new RTCPeerConnection(iceConfig);
-    
-    channel.current = pc.current.createDataChannel("sendDataChannel");
-    channel.current.binaryType = 'arraybuffer';
+    if(room_status?.status === 'success' && searchParams.get('modal') !== 'false') {
+      handleShow(MODAL_TYPES.QR_CODE, {
+        url: `${window.location.href}?modal=false`,
+        data: room_status.data
+      });
+    }
 
-    channel.current.onmessage = (e) => console.log(e);
-
-    pc.current.onconnectionstatechange = () => {
-      console.log("Connection state:", pc.current.connectionState);
-
-      switch (pc.current.connectionState) {
-        case "connected":
-          messageApi.info("✅ Peers connected successfully!");
-          break;
-        case "disconnected":
-        case "failed":
-          messageApi.error("❌ Connection failed or lost.");
-          break;
-        case "closed":
-          messageApi.warning("🔒 Connection closed.");
-          break;
-      }
-    };
-
-    pc.current.onicecandidate = (e) => {
-      if (e.candidate) {
-        socket.emit("ice-candidate", { 
-          to: targetId.current, 
-          candidate: e.candidate 
-        });
-      }
-    };
-
-    pc.current.ondatachannel = (e) => {
-      let received = [];
-      let fileName = "";
-      let fileType = "";
-      let fileId = "";
-
-      e.channel.onmessage = (msg) => {
-        if (typeof msg.data === "string") {
-          if (msg.data.startsWith("META:")) {
-            const meta = JSON.parse(msg.data.replace("META:", ""));
-            fileName = meta.fileName;
-            fileType = meta.fileType;
-            fileId = meta.fileId;
-            setReceiving(prevState => ([
-              ...prevState,
-              {
-                id: fileId,
-                name: fileName,
-                type: fileType,
-                url: null,
-                percentage: 0
-              }
-            ]));
-          } else if (msg.data.startsWith("PERCENTAGE:")) {
-            const percentage = msg.data.replace("PERCENTAGE:", "");
-            setReceiving(prevState => prevState.map(item => {
-              return item.id === fileId ? {
-                ...item,
-                percentage: parseInt(percentage)
-              } : item;
-            }));
-          } else if (msg.data === "EOF") {
-            const blob = new Blob(received, { type: fileType });
-            const url = URL.createObjectURL(blob);
-            setReceiving(prevState => prevState.map(item => {
-              return item.id === fileId ? {
-                ...item,
-                url,
-                percentage: 100
-              } : item;
-            }));
-            received = [];
-            sounds.messagenotification?.play();
-
-            socket.emit("files-counter", { 
-              status: 'success',
-            });
-          }
-        } else {
-          received.push(msg.data);
-        }
-      };
-    };
-
-    socket.on("offer", async ({ from, sdp }) => {
-      targetId.current = from;
-      setTargetIdChanges(from);
-      await pc.current.setRemoteDescription(new RTCSessionDescription(sdp));
-      const answer = await pc.current.createAnswer();
-      await pc.current.setLocalDescription(answer);
-      socket.emit("answer", { to: from, sdp: answer });
-
-      console.log('offer');
-    });
-
-    socket.on("answer", async ({ sdp }) => {
-      await pc.current.setRemoteDescription(new RTCSessionDescription(sdp));
-
-      console.log('answer');
-    });
-
-    socket.on("ice-candidate", async ({ candidate }) => {
-      try {
-        await pc.current.addIceCandidate(new RTCIceCandidate(candidate));
-
-        console.log('ice-candidate');
-      } catch (err) {
-        console.error("Error adding ICE candidate", err);
-      }
-    });
-
-    return () => {
-      pc.current?.close();
-      pc.current = null;
-    };
-  }, []);
-
-  useEffect(() => {
     const handleBeforeUnload = (event) => {
       if(room_status.status === 'success') {
         socket.emit("leave-room", { 
@@ -245,15 +131,6 @@ function Room() {
     window.addEventListener('beforeunload', handleBeforeUnload);
 
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [room_status]);
-
-  useEffect(() => {
-    if(room_status?.status === 'success' && searchParams.get('modal') !== 'false') {
-      handleShow(MODAL_TYPES.QR_CODE, {
-        url: `${window.location.href}?modal=false`,
-        data: room_status.data
-      });
-    }
   }, [room_status]);
 
   useEffect(() => {
@@ -323,9 +200,159 @@ function Room() {
     };
   }, []);
 
+  useEffect(() => {
+    socket.on("offer", async ({ from, sdp }) => {
+      targetId.current = from;
+      setTargetIdChanges(from);
+      pc.current = new RTCPeerConnection(iceConfig);
+
+      pc.current.ondatachannel = (e) => {
+        let received = [];
+        let fileName = "";
+        let fileType = "";
+        let fileId = "";
+
+        e.channel.onmessage = (msg) => {
+          if (typeof msg.data === "string") {
+            if (msg.data.startsWith("META:")) {
+              const meta = JSON.parse(msg.data.replace("META:", ""));
+              fileName = meta.fileName;
+              fileType = meta.fileType;
+              fileId = meta.fileId;
+              setReceiving(prevState => ([
+                ...prevState,
+                {
+                  id: fileId,
+                  name: fileName,
+                  type: fileType,
+                  url: null,
+                  percentage: 0
+                }
+              ]));
+            } else if (msg.data.startsWith("PERCENTAGE:")) {
+              const percentage = msg.data.replace("PERCENTAGE:", "");
+              setReceiving(prevState => prevState.map(item => {
+                return item.id === fileId ? {
+                  ...item,
+                  percentage: parseInt(percentage)
+                } : item;
+              }));
+            } else if (msg.data === "EOF") {
+              const blob = new Blob(received, { type: fileType });
+              const url = URL.createObjectURL(blob);
+              setReceiving(prevState => prevState.map(item => {
+                return item.id === fileId ? {
+                  ...item,
+                  url,
+                  percentage: 100
+                } : item;
+              }));
+              received = [];
+              sounds.messagenotification?.play();
+
+              socket.emit("files-counter", { 
+                status: 'success',
+              });
+
+              pc.current?.close();
+              pc.current = null;
+            }
+          } else {
+            received.push(msg.data);
+          }
+        };
+      };
+
+      pc.current.onconnectionstatechange = () => {
+        console.log("Connection state:", pc.current.connectionState);
+
+        switch (pc.current.connectionState) {
+          case "connected":
+            messageApi.info("✅ Peers connected successfully!");
+            break;
+          case "disconnected":
+          case "failed":
+            messageApi.error("❌ Connection failed or lost.");
+            break;
+          case "closed":
+            messageApi.warning("🔒 Connection closed.");
+            break;
+        }
+      };
+
+      pc.current.onicecandidate = (e) => {
+        if (e.candidate) {
+          socket.emit("ice-candidate", { 
+            to: targetId.current, 
+            candidate: e.candidate 
+          });
+        }
+      };
+
+      await pc.current.setRemoteDescription(new RTCSessionDescription(sdp));
+      const answer = await pc.current.createAnswer();
+      await pc.current.setLocalDescription(answer);
+      socket.emit("answer", { to: from, sdp: answer });
+
+      console.log('offer');
+    });
+
+    socket.on("answer", async ({ sdp }) => {
+      await pc.current.setRemoteDescription(new RTCSessionDescription(sdp));
+
+      console.log('answer');
+    });
+
+    socket.on("ice-candidate", async ({ candidate }) => {
+      try {
+        await pc.current.addIceCandidate(new RTCIceCandidate(candidate));
+
+        console.log('ice-candidate');
+      } catch (err) {
+        console.error("Error adding ICE candidate", err);
+      }
+    });
+
+    return () => {};
+  }, []);
+
   const startConnection = async (peerId) => {
     targetId.current = peerId;
     setTargetIdChanges(peerId);
+
+    pc.current = new RTCPeerConnection(iceConfig);
+    
+    channel.current = pc.current.createDataChannel("sendDataChannel");
+    channel.current.binaryType = 'arraybuffer';
+
+    channel.current.onmessage = (e) => console.log(e);
+
+    pc.current.onconnectionstatechange = () => {
+      console.log("Connection state:", pc.current.connectionState);
+
+      switch (pc.current.connectionState) {
+        case "connected":
+          messageApi.info("✅ Peers connected successfully!");
+          break;
+        case "disconnected":
+        case "failed":
+          messageApi.error("❌ Connection failed or lost.");
+          break;
+        case "closed":
+          messageApi.warning("🔒 Connection closed.");
+          break;
+      }
+    };
+
+    pc.current.onicecandidate = (e) => {
+      if (e.candidate) {
+        socket.emit("ice-candidate", { 
+          to: targetId.current, 
+          candidate: e.candidate 
+        });
+      }
+    };
+
     const offer = await pc.current.createOffer();
     await pc.current.setLocalDescription(offer);
     socket.emit("offer", { to: peerId, sdp: offer });
@@ -372,6 +399,9 @@ function Room() {
         readSlice(offset);
       } else {
         channel.current.send("EOF");
+
+        pc.current?.close();
+        pc.current = null;
       }
     };
 
