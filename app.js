@@ -51,6 +51,21 @@ let onlineUsers = new Map();
 app.use(cors(corsConfig));
 app.use(express.static(join(__dirname, "client", "dist")));
 
+app.post('/api/create-room', async (req, res) => {
+  const body = req.body;
+
+  await redis.hSet(`room:${body.room_id}`, {
+    ...body,
+    created_at: Date.now()
+  });
+  const room = await redis.hGetAll(`room:${room_id}`);
+
+  res.json({
+    data: room,
+    message: "Room Created!",
+  });
+});
+
 app.get(/(.*)/, (req, res, next) => {
   res.sendFile(join(__dirname, "client", "dist", "index.html"));
 });
@@ -76,22 +91,22 @@ io.on('connection', (socket) => {
     io.emit("update_users", Array.from(onlineUsers.keys()));
   });
 
-  socket.on("create-room", async ({ room_id, name, password, owner_id }) => {
-    await redis.hSet(`room:${room_id}`, {
-      room_id,
-      name,
-      password, 
-      owner_id,
-      created_at: Date.now()
-    });
-    const room = await redis.hGetAll(`room:${room_id}`);
-    socket.emit("room-status", {
-      data: room,
-      message: "Room Created!",
-      status: "room-created"
-    });
-    console.log(`Room created: ${room_id}:${password}`);
-  });
+  // socket.on("create-room", async ({ room_id, name, password, owner_id }) => {
+  //   await redis.hSet(`room:${room_id}`, {
+  //     room_id,
+  //     name,
+  //     password, 
+  //     owner_id,
+  //     created_at: Date.now()
+  //   });
+  //   const room = await redis.hGetAll(`room:${room_id}`);
+  //   socket.emit("room-status", {
+  //     data: room,
+  //     message: "Room Created!",
+  //     status: "room-created"
+  //   });
+  //   console.log(`Room created: ${room_id}:${password}`);
+  // });
 
   socket.on("join-room", async ({ room_id, password, user_id, username }) => {
     const room = await redis.hGetAll(`room:${room_id}`);

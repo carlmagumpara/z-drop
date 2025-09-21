@@ -8,6 +8,7 @@ import { v4 as uuidv4 } from 'uuid';
 import CountUp from 'react-countup';
 import { socket } from '@/shared/socket';
 import { usePresence } from '@/contexts/presence';
+import Loading from '@/shared/loading';
 
 const imageModules = import.meta.glob('@/assets/formats/*.{png,jpg,jpeg,gif,svg}', { 
   eager: true, 
@@ -31,15 +32,18 @@ const positions = [
 function Landing() {
   const navigate = useNavigate();
   const { user_id, users, analytics } = usePresence();
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    socket.on("room-status", (data) => {
-      console.log(data);
-    });
+    // socket.on("room-status", (data) => {
+    //   console.log(data.data.room_id);
 
-    return () => {
-      socket.off("room-status");
-    };
+    //   navigate(`/r/${room_id}`);
+    // });
+
+    // return () => {
+    //   socket.off("room-status");
+    // };
   }, []);
 
 
@@ -69,13 +73,12 @@ function Landing() {
                   onClick={() => {
                     const room_id = uuidv4();
 
-                    socket.emit("create-room", {
-                      room_id,
-                      name: 'kung ano ano lang',
-                      password: null,
-                      owner_id: user_id,
-                    });
-                    // navigate(`/r/${room_id}`);
+                    // socket.emit("create-room", {
+                    //   room_id,
+                    //   name: 'kung ano ano lang',
+                    //   password: null,
+                    //   owner_id: user_id,
+                    // });
                   }}
                 >
                   <BsFillSendArrowUpFill /> Get Started
@@ -88,13 +91,12 @@ function Landing() {
                   onClick={() => {
                     const room_id = uuidv4();
 
-                    socket.emit("create-room", {
-                      room_id,
-                      name: 'kung ano ano lang',
-                      password: '09071995',
-                      owner_id: user_id,
-                    });
-                    // navigate(`/r/${room_id}`);
+                    // socket.emit("create-room", {
+                    //   room_id,
+                    //   name: 'kung ano ano lang',
+                    //   password: '09071995',
+                    //   owner_id: user_id,
+                    // });
                   }}
                 >
                   <IoDocumentLock /> Create Room with Password

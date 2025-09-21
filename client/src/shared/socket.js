@@ -1,5 +1,6 @@
 import { io } from 'socket.io-client';
+import { base_url } from './config';
 
-export const socket = io("https://fs-server-ze6q.onrender.com", {
+export const socket = io(base_url, {
   withCredentials: true,
 });
