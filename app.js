@@ -84,13 +84,13 @@ io.on('connection', (socket) => {
       owner_id,
       created_at: Date.now()
     });
-
-    console.log(`Room created: ${room_id}:${password}`);
+    const room = await redis.hGetAll(`room:${room_id}`);
     socket.emit("room-status", {
-      data: {},
+      data: room,
       message: "Room Created!",
       status: "room-created"
     });
+    console.log(`Room created: ${room_id}:${password}`);
   });
 
   socket.on("join-room", async ({ room_id, password, user_id, username }) => {
