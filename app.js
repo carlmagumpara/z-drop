@@ -89,7 +89,15 @@ io.on('connection', (socket) => {
   });
 
   socket.on("join-room", async ({ room_id, password, user_id, username }) => {
-    const room = await redis.hgetall(`room:${room_id}`); 
+    const room = await redis.hgetall(`room:${room_id}`);
+
+    if(!room) {
+      socket.emit("room-status", {
+        data: {},
+        message: "Room not found!",
+        status: "not-found"
+      });
+    }
 
     if(room?.password && !room?.owner_id !== user_id) {
       if(!password) {
