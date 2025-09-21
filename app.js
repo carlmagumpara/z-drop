@@ -111,6 +111,8 @@ io.on('connection', (socket) => {
   socket.on("join-room", async ({ room_id, password, user_id, username }) => {
     const room = await redis.hGetAll(`room:${room_id}`);
 
+    console.log('room', room);
+
     if(!room) {
       socket.emit("room-status", {
         data: {},
