@@ -42,7 +42,7 @@ function Room() {
   const sounds = useSound();
   const [room_status, setRoomStatus] = useState(null);
   const formikRef = useRef(null);  
-  const [status, setStatus] = useState(null);
+  const [status, setStatus] = useState("disconnected");
 
   // "connected"
   // "disconnected"
