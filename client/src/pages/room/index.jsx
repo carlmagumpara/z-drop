@@ -451,6 +451,7 @@ function Room() {
                   url: `${window.location.href}?modal=false`,
                   data: room_status.data
                 })}
+                className="animate__animated animate__bounceIn"
               >
                 <FaQrcode />
               </Button>
@@ -458,6 +459,7 @@ function Room() {
                 size="lg"
                 variant="light"
                 onClick={toogleChat}
+                className="animate__animated animate__bounceIn"
               >
                 <IoMdChatboxes />
                 {!chat ? (
