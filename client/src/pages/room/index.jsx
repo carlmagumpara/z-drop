@@ -231,12 +231,6 @@ function Room() {
   }, []);
 
   useEffect(() => {
-    if(searchParams.get('modal') !== 'false') {
-      handleShow(MODAL_TYPES.QR_CODE, {
-        url: `${window.location.href}?modal=false`
-      });
-    }
-
     const handleBeforeUnload = (event) => socket.emit("leave-room", { 
       room_id, 
       username, 
@@ -247,6 +241,14 @@ function Room() {
 
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, []);
+
+  useEffect(() => {
+    if(room_status && searchParams.get('modal') !== 'false') {
+      handleShow(MODAL_TYPES.QR_CODE, {
+        url: `${window.location.href}?modal=false`
+      });
+    }
+  }, [room_status]);
 
   const sendFile = (file) => {
     const metadata = {
@@ -319,6 +321,7 @@ function Room() {
     });
 
     socket.on("room-status", (data) => {
+      console.log(data);
       setRoomStatus(data.status);
     });
 

@@ -49,21 +49,21 @@ const port = process.env.PORT || 4000;
 let onlineUsers = new Map();
 
 app.use(cors(corsConfig));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(express.static(join(__dirname, "client", "dist")));
 
 app.post('/api/create-room', async (req, res) => {
+  const body = req.body;
 
-  console.log(req.body);
-  // const body = req.body;
-
-  // await redis.hSet(`room:${body.room_id}`, {
-  //   ...body,
-  //   created_at: Date.now()
-  // });
-  // const room = await redis.hGetAll(`room:${body.room_id}`);
+  await redis.hSet(`room:${body.room_id}`, {
+    ...body,
+    created_at: Date.now()
+  });
+  const room = await redis.hGetAll(`room:${body.room_id}`);
 
   res.json({
-    // data: room,
+    data: room,
     message: "Room Created!",
   });
 });
