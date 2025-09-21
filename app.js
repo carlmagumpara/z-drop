@@ -107,11 +107,7 @@ io.on('connection', (socket) => {
 
     const room = await redis.hGetAll(`room:${room_id}`);
 
-    console.log(room);
-    console.log(room.owner_id);
-    console.log(user_id);
-
-    if(room.password !== '' && !room.owner_id !== user_id) {
+    if(room.password !== '' && room.owner_id !== user_id) {
       if(!password) {
         socket.emit("room-status", {
           data: {},
