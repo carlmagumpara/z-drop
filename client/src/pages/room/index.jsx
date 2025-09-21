@@ -428,7 +428,7 @@ function Room() {
                 zIndex: 999
               }}
             >
-              <p>Status: {statusIcons[status]} {status}</p>
+              <p className="mb-3">Status: {statusIcons[status]} {status}</p>
               <Suspense fallback={null}>
                 <CustomToast
                   title={`Receiving Files (${receiving.length})`}
@@ -571,70 +571,72 @@ function Room() {
             </Suspense>
           </>
         ) : (
-          <Formik
-            innerRef={formikRef}
-            initialValues={{
-              password: '',
-            }}
-            validationSchema={() => Yup.object().shape({
-              password: Yup.string().required('Required'),
-            })}
-            onSubmit={onSubmit}
-          >
-          {({
-            values,
-            errors,
-            touched,
-            handleChange,
-            handleBlur,
-            handleSubmit,
-            isSubmitting,
-            setFieldValue,
-            setValues
-           }) => (
-              <Form 
-                onSubmit={handleSubmit} 
-                autoComplete="off"
-              >
-                <Row>
-                  <Col 
-                    md={{ span: 4, offset: 4 }} 
-                    className="vh-100 d-flex justify-content-center align-items-center"
-                  >
-                    <div className="w-100">
-                      <h1 className="display-1 text-center text-danger">
-                        <IoDocumentLock />
-                      </h1>
-                      <Form.Group className="mb-3">
-                        <Form.Label>Room Password</Form.Label>
-                        <Form.Control 
-                          type="password" 
-                          name="password"
-                          placeholder="Enter Room Password"
-                          value={values.password}
-                          onChange={handleChange}
-                          onBlur={handleBlur}
-                          className={errors.password && touched.password && 'is-invalid'}
-                        />
-                        {errors.password && touched.password && <Form.Control.Feedback type="invalid">{errors.password}</Form.Control.Feedback>}
-                      </Form.Group>
-                      <div
-                        className="d-flex justify-content-end align-items-center"
-                      >
-                        <Button 
-                          disabled={isSubmitting}
-                          type="submit"
-                          variant="danger"
+          <Container>
+            <Formik
+              innerRef={formikRef}
+              initialValues={{
+                password: '',
+              }}
+              validationSchema={() => Yup.object().shape({
+                password: Yup.string().required('Required'),
+              })}
+              onSubmit={onSubmit}
+            >
+            {({
+              values,
+              errors,
+              touched,
+              handleChange,
+              handleBlur,
+              handleSubmit,
+              isSubmitting,
+              setFieldValue,
+              setValues
+             }) => (
+                <Form 
+                  onSubmit={handleSubmit} 
+                  autoComplete="off"
+                >
+                  <Row>
+                    <Col 
+                      md={{ span: 4, offset: 4 }} 
+                      className="vh-100 d-flex justify-content-center align-items-center"
+                    >
+                      <div className="w-100">
+                        <h1 className="display-1 text-center text-danger">
+                          <IoDocumentLock />
+                        </h1>
+                        <Form.Group className="mb-3">
+                          <Form.Label>Room Password</Form.Label>
+                          <Form.Control 
+                            type="password" 
+                            name="password"
+                            placeholder="Enter Room Password"
+                            value={values.password}
+                            onChange={handleChange}
+                            onBlur={handleBlur}
+                            className={errors.password && touched.password && 'is-invalid'}
+                          />
+                          {errors.password && touched.password && <Form.Control.Feedback type="invalid">{errors.password}</Form.Control.Feedback>}
+                        </Form.Group>
+                        <div
+                          className="d-flex justify-content-end align-items-center"
                         >
-                          {isSubmitting ? 'Please wait...' : 'Submit'}
-                        </Button>
+                          <Button 
+                            disabled={isSubmitting}
+                            type="submit"
+                            variant="danger"
+                          >
+                            {isSubmitting ? 'Please wait...' : 'Submit'}
+                          </Button>
+                        </div>
                       </div>
-                    </div>
-                  </Col>
-                </Row>
-              </Form>
-           )}
-          </Formik>
+                    </Col>
+                  </Row>
+                </Form>
+             )}
+            </Formik>
+          </Container>
         )}
       </div>
     </>
