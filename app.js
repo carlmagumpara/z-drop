@@ -68,6 +68,15 @@ app.post('/api/create-room', async (req, res) => {
   });
 });
 
+app.get('/api/messages/:room_id', async (req, res) => {
+  const messages = await redis.lRange(`chat:messages-${req.params.room_id}`, 0, -1);
+
+  res.json({
+    data: messages.map(message => JSON.parse(message)),
+    message: "Room Created!",
+  });
+});
+
 app.get(/(.*)/, (req, res, next) => {
   res.sendFile(join(__dirname, "client", "dist", "index.html"));
 });
@@ -150,8 +159,8 @@ io.on('connection', (socket) => {
       username,
       socket_id: socket.id
     });
-    const messages = await redis.lRange(`chat:messages-${room_id}`, 0, -1);
-    socket.emit("chat-history", messages.map(message => JSON.parse(message)));
+    // const messages = await redis.lRange(`chat:messages-${room_id}`, 0, -1);
+    // socket.emit("chat-history", messages.map(message => JSON.parse(message)));
 
     socket.data.username = username;
     socket.data.user_id = user_id;
