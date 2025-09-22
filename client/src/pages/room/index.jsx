@@ -115,8 +115,7 @@ function Room() {
   useEffect(() => {
     if(room_status?.status === 'success' && searchParams.get('modal') !== 'false') {
       handleShow(MODAL_TYPES.QR_CODE, {
-        url: `${window.location.href}?modal=false`,
-        data: room_status.data
+        url: `${window.location.origin}/r/${room_id}?modal=false`,
       });
     }
 
@@ -437,6 +436,8 @@ function Room() {
                 zIndex: 999
               }}
             >
+              <p className="mb-0">Room Name: {room_status?.data?.name ?? 'N/A'}</p>
+              <p className="mb-0">Room Password: {room_status?.data?.password ?? 'No Password'}</p>
               <p className="mb-3">Status: {statusIcons[status]} {status}</p>
               <Suspense fallback={null}>
                 <CustomToast
@@ -477,8 +478,7 @@ function Room() {
                 size="lg"
                 variant="light"
                 onClick={() => handleShow(MODAL_TYPES.QR_CODE, {
-                  url: `${window.location.href}?modal=false`,
-                  data: room_status.data
+                  url: `${window.location.origin}/r/${room_id}?modal=false`,
                 })}
                 className="animate__animated animate__bounceIn"
               >
