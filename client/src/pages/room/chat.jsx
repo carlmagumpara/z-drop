@@ -13,6 +13,7 @@ import useSound from './sounds';
 import { v4 as uuidv4 } from 'uuid';
 import RightMessage from './right-message';
 import LeftMessage from './left-message';
+import { getMessages } from '@/shared/api';
 
 function Chat({ room_id = '' }) {
   const sounds = useSound();
@@ -38,6 +39,20 @@ function Chat({ room_id = '' }) {
   const typingRef = useRef(null);
   const chatMessagesRef = useRef(null);
   const offcanvasRef = useRef(null);
+
+  useEffect(() => {
+    const chatHistory = async () => {
+      try {
+        const data = await getMessages(room_id);
+
+        setMessages(data);
+      } catch (error) {
+        console.log(error);
+      }      
+    };
+
+    chatHistory();
+  }, []);
 
   useEffect(() => {
     if(chat) {
@@ -160,14 +175,14 @@ function Chat({ room_id = '' }) {
       }
     });
 
-    socket.on("chat-history", (data) => {
-      console.log("chat-history", data);
-      setMessages(data);
-    });
+    // socket.on("chat-history", (data) => {
+    //   console.log("chat-history", data);
+    //   setMessages(data);
+    // });
 
     return () => {
       socket.off("message");
-      socket.off("chat-history");
+      // socket.off("chat-history");
     };
   }, [chat, isBottom]);
 

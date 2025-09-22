@@ -21,7 +21,7 @@ function CreatePrivateRoom() {
       });
       setSubmitting(false);
       handleClose();
-      navigate(`/r/${data.data.room_id}`);
+      navigate(`/r/${data.room_id}`);
     } catch (error) {
       setSubmitting(false);
       console.log(error);

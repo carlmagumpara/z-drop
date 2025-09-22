@@ -9,7 +9,17 @@ export const createRoom = async data => {
       room_id
     });
 
-    return response.data;
+    return response.data.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const getMessages = async room_id => {
+  try {
+    const response = await axios.get(`/messages/${room_id}`);
+
+    return response.data.data;
   } catch (error) {
     throw error;
   }

@@ -39,7 +39,7 @@ function Landing() {
         password: '',
         owner_id: user_id
       });
-      navigate(`/r/${data.data.room_id}`);
+      navigate(`/r/${data.room_id}`);
     } catch (error) {
       console.log(error);
     }
