@@ -10,7 +10,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const redis = createClient({ 
-  url: 'rediss://red-d361o3umcj7s73abuvmg:W9sA7l54Rhnuh3burt7TAafEaVUReEPk@oregon-keyvalue.render.com:6379',
+  url: 'rediss://red-d38ek3buibrs739ogjo0:LFbs4Be3hkI0pJub0yr58dL3bXR7vUwi@singapore-keyvalue.render.com:6379',
   socket: {
     reconnectStrategy: (retries) => {
       if (retries > 10) {
