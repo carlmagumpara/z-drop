@@ -29,39 +29,38 @@ function Room() {
   const messageApi = useMessage();
   const { user_id, username } = usePresence();
   const { chat, unread, toogleChat, offcanvasswidth } = useChat();
+  
   const [users, setUsers] = useState([]);
   const [receiving, setReceiving] = useState([]);
   const [sending, setSending] = useState([]);
-  const fileInputRef = useRef(null);
+
   const pc = useRef(null);
-  const [logs, setLogs] = useState([]);
+  const fileInputRef = useRef(null);
   const channel = useRef(null);
   const targetId = useRef(null);
-  const [targetIdChanges, setTargetIdChanges] = useState(null);
   const [positions, setPositions] = useState([]);
   const sounds = useSound();
   const [room_status, setRoomStatus] = useState(null);
   const formikRef = useRef(null);  
   const [status, setStatus] = useState("disconnected");
+  const [percentage, setPercentage] = useState(0);
 
-  const size = 60;
+  const size = 70;
   const maxTries = 500;
 
   useEffect(() => {
     const positionUsers = () => {
-      const padding = 50; 
+      const paddingPercent = 5; // instead of 50px fixed, gagawin nating percent
       const radar = document.querySelector('.radar');
 
-      if(!radar) {
-        return;
-      }
+      if (!radar) return;
 
       const parentWidth = radar.clientWidth;
       const parentHeight = radar.clientHeight;
-      const availableWidth = parentWidth - padding * 2;
-      const availableHeight = parentHeight - padding * 2;
-      const startX = (parentWidth - availableWidth) / 2;
-      const startY = (parentHeight - availableHeight) / 2;
+
+      // available space in percent
+      const availableWidthPercent = 100 - paddingPercent * 2;
+      const availableHeightPercent = 100 - paddingPercent * 2;
 
       setPositions((prevPositions) => {
         let placed = [...prevPositions];
@@ -78,12 +77,14 @@ function Room() {
 
           do {
             overlap = false;
-            x = startX + Math.random() * (availableWidth - size);
-            y = startY + Math.random() * (availableHeight - size);
+
+            // random % value within available space
+            x = paddingPercent + Math.random() * (availableWidthPercent - (size / parentWidth) * 100);
+            y = paddingPercent + Math.random() * (availableHeightPercent - (size / parentHeight) * 100);
 
             for (let p of placed) {
-              const dx = p.x - x;
-              const dy = p.y - y;
+              const dx = (p.x - x) * parentWidth / 100;
+              const dy = (p.y - y) * parentHeight / 100;
               const dist = Math.sqrt(dx * dx + dy * dy);
               if (dist < size) {
                 overlap = true;
@@ -94,12 +95,12 @@ function Room() {
           } while (overlap && tries < maxTries);
 
           if (!overlap) {
-            placed.push({ 
+            placed.push({
               user_id,
-              username, 
+              username,
               socket_id,
-              x, 
-              y 
+              x,
+              y,
             });
           }
         });
@@ -211,7 +212,6 @@ function Room() {
       }
       
       targetId.current = from;
-      setTargetIdChanges(from);
       pc.current = new RTCPeerConnection(iceConfig);
 
       pc.current.ondatachannel = (e) => {
@@ -245,6 +245,7 @@ function Room() {
                   percentage: parseInt(percentage)
                 } : item;
               }));
+              setPercentage(parseInt(percentage));
             } else if (msg.data === "EOF") {
               const blob = new Blob(received, { type: fileType });
               const url = URL.createObjectURL(blob);
@@ -261,6 +262,7 @@ function Room() {
               socket.emit("files-counter", { 
                 status: 'success',
               });
+              setPercentage(0);
             }
           } else {
             received.push(msg.data);
@@ -316,8 +318,6 @@ function Room() {
     }
 
     targetId.current = peerId;
-    setTargetIdChanges(peerId);
-
     pc.current = new RTCPeerConnection(iceConfig);
     
     channel.current = pc.current.createDataChannel("sendDataChannel");
@@ -353,7 +353,6 @@ function Room() {
       fileType: file.type
     };
     channel.current.send("META:" + JSON.stringify(metadata));
-
     setSending(prevState => ([
       ...prevState,
       {
@@ -364,7 +363,6 @@ function Room() {
         percentage: 0
       }
     ]));
-
     const chunkSize = 16 * 1024;
     let offset = 0;
     const reader = new FileReader();
@@ -381,10 +379,12 @@ function Room() {
           percentage: parseInt(percentage)
         } : item;
       }));
+      setPercentage(parseInt(percentage));
       if (offset < file.size) {
         readSlice(offset);
       } else {
         channel.current.send("EOF");
+        setPercentage(0);
       }
     };
 
@@ -418,8 +418,15 @@ function Room() {
   }
   
   return (
-    <>
-      <div className="radar vh-100 w-100 position-relative">
+    <div
+      style={{
+        paddingRight: offcanvasswidth,
+        transition: 'padding-right 0.3s ease-in-out',
+      }}
+    >
+      <div 
+        className="radar vh-100 w-100 position-relative"
+      >
         {room_status?.status === 'success' ? (
           <>
             <ToastContainer 
@@ -461,7 +468,7 @@ function Room() {
             <div
               className="position-absolute d-flex justify-content-between align-items-center gap-3"
               style={{
-                right: 15 + offcanvasswidth,
+                right: 15,
                 bottom: 15,
                 zIndex: 999
               }}
@@ -524,8 +531,8 @@ function Room() {
                   id={p.user_id}
                   style={{
                     position: "absolute",
-                    left: p.x,
-                    top: p.y,
+                    left: `${p.x}%`, 
+                    top: `${p.y}%`,
                   }}
                   className="animate__animated animate__bounceIn"
                   onClick={event => {
@@ -541,11 +548,18 @@ function Room() {
                   <div
                     className="d-flex flex-column align-items-center gap-1"
                   >
-                    <Avatar
-                      name={p.username}
-                      size={size}
-                      variant="beam"
-                    />
+                    <div 
+                      className="progress-ring"
+                      style={{
+                        background: targetId.current === p.socket_id ? `conic-gradient(#4caf50 ${percentage}%, #e6e6e6 0%)` : `conic-gradient(#4caf50 0%, #e6e6e6 0%)`
+                      }}
+                    >
+                      <Avatar
+                        name={p.username}
+                        size={size}
+                        variant="beam"
+                      />
+                    </div>
                     <p className="text-center small">
                       {p.user_id === user_id ? 'You' : p.username}
                     </p>
@@ -641,7 +655,7 @@ function Room() {
           </Container>
         )}
       </div>
-    </>
+    </div>
   );
 }
 

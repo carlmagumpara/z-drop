@@ -242,3 +242,19 @@ details {
     transform: translateY(-25px);
   }
 }
+
+.progress-ring {
+  position: relative;
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px;
+  box-sizing: border-box;
+  // background: conic-gradient(
+  //   #4caf50 10%, 
+  //   #e6e6e6 0%
+  // );
+}
