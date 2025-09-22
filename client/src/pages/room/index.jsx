@@ -346,7 +346,7 @@ function Room() {
     console.log('startConnection');
   };
 
-  const sendFile = (file) => {
+  const sendFile = (file) => {    
     const metadata = {
       fileId: uuidv4(),
       fileName: file.name,
@@ -542,6 +542,10 @@ function Room() {
                     }
 
                     startConnection(p.socket_id);
+                    if (fileInputRef.current) {
+                      fileInputRef.current.value = null;
+                    }
+                    
                     fileInputRef.current.click();
                   }}
                 >
