@@ -545,7 +545,7 @@ function Room() {
                     if (fileInputRef.current) {
                       fileInputRef.current.value = null;
                     }
-                    
+
                     fileInputRef.current.click();
                   }}
                 >
@@ -555,6 +555,7 @@ function Room() {
                     <div 
                       className="progress-ring"
                       style={{
+                        padding: (targetId.current === p.socket_id && percentage !== 0) ? 3 : 0,
                         background: targetId.current === p.socket_id ? `conic-gradient(#4caf50 ${percentage}%, #e6e6e6 0%)` : `conic-gradient(#4caf50 0%, #e6e6e6 0%)`
                       }}
                     >
