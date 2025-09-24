@@ -9,7 +9,7 @@ const PresenceContext = createContext();
 export const usePresence = () => useContext(PresenceContext);
 
 function PresenceProvider({ children }) {
-  const [isConnected, setIsConnected] = useState(socket.connected);
+  const [is_connected, setIsConnected] = useState(socket.connected);
   const [user_id, setUserId] = useState(localStorage.getItem("user_id"));
   const [username, setUserName] = useState(localStorage.getItem("username"));
   const [auto_dowload, setAutoDownload] = useState(localStorage.getItem("auto_download") === 'true');
@@ -80,7 +80,7 @@ function PresenceProvider({ children }) {
     };
   }, [user_id, username]);
 
-  if(!username || !user_id) {
+  if(!username || !user_id || !is_connected) {
     return <Loading />;
   }
 
@@ -94,7 +94,7 @@ function PresenceProvider({ children }) {
         setAutoDownload,
         users,
         analytics,
-        isConnected
+        is_connected
       }}
     >
       {children}

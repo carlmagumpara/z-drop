@@ -13,7 +13,6 @@ function Navigation() {
     <Navbar
       expand="lg"
       fixed="top"
-      // className="border-bottom"
     >
       <Container
         fluid

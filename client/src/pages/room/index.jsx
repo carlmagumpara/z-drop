@@ -214,60 +214,127 @@ function Room() {
       pc.current = new RTCPeerConnection(iceConfig);
 
       pc.current.ondatachannel = (e) => {
-        let received = [];
-        let fileName = "";
-        let fileType = "";
-        let fileId = "";
+        const channel = e.channel;
+        const files = {}; // { fileId: { name, type, chunks: [], percentage } }
 
-        e.channel.onmessage = (msg) => {
+        channel.onmessage = (msg) => {
           if (typeof msg.data === "string") {
             if (msg.data.startsWith("META:")) {
               const meta = JSON.parse(msg.data.replace("META:", ""));
-              fileName = meta.fileName;
-              fileType = meta.fileType;
-              fileId = meta.fileId;
-              setReceiving(prevState => ([
-                ...prevState,
-                {
-                  id: fileId,
-                  name: fileName,
-                  type: fileType,
-                  url: null,
-                  percentage: 0
-                }
-              ]));
-            } else if (msg.data.startsWith("PERCENTAGE:")) {
-              const percentage = msg.data.replace("PERCENTAGE:", "");
-              setReceiving(prevState => prevState.map(item => {
-                return item.id === fileId ? {
-                  ...item,
-                  percentage: parseInt(percentage)
-                } : item;
-              }));
-              setPercentage(parseInt(percentage));
-            } else if (msg.data === "EOF") {
-              const blob = new Blob(received, { type: fileType });
-              const url = URL.createObjectURL(blob);
-              setReceiving(prevState => prevState.map(item => {
-                return item.id === fileId ? {
-                  ...item,
-                  url,
-                  percentage: 100
-                } : item;
-              }));
-              received = [];
-              sounds.messagenotification?.play();
+              files[meta.fileId] = {
+                name: meta.fileName,
+                type: meta.fileType,
+                chunks: [],
+                percentage: 0,
+              };
 
-              socket.emit("files-counter", { 
-                status: 'success',
-              });
-              setPercentage(0);
+              setReceiving((prev) => [
+                ...prev,
+                {
+                  id: meta.fileId,
+                  name: meta.fileName,
+                  type: meta.fileType,
+                  url: null,
+                  percentage: 0,
+                },
+              ]);
+            } 
+            else if (msg.data.startsWith("PERCENTAGE:")) {
+              const percentage = parseInt(msg.data.replace("PERCENTAGE:", ""));
+              const current = Object.values(files).slice(-1)[0]; // last file
+              if (current) {
+                current.percentage = percentage;
+                setReceiving((prev) =>
+                  prev.map((item) =>
+                    item.id === current.id ? { ...item, percentage } : item
+                  )
+                );
+                setPercentage(percentage);
+              }
+            } 
+            else if (msg.data === "EOF") {
+              const currentId = Object.keys(files).slice(-1)[0]; // last fileId
+              const current = files[currentId];
+              if (current) {
+                const blob = new Blob(current.chunks, { type: current.type });
+                const url = URL.createObjectURL(blob);
+
+                setReceiving((prev) =>
+                  prev.map((item) =>
+                    item.id === currentId ? { ...item, url, percentage: 100 } : item
+                  )
+                );
+
+                delete files[currentId]; // clean up
+                sounds.messagenotification?.play();
+
+                socket.emit("files-counter", { status: "success" });
+                setPercentage(0);
+              }
             }
           } else {
-            received.push(msg.data);
+            // binary chunk
+            const current = Object.values(files).slice(-1)[0];
+            if (current) current.chunks.push(msg.data);
           }
         };
       };
+
+      // pc.current.ondatachannel = (e) => {
+      //   let received = [];
+      //   let fileName = "";
+      //   let fileType = "";
+      //   let fileId = "";
+
+      //   e.channel.onmessage = (msg) => {
+      //     if (typeof msg.data === "string") {
+      //       if (msg.data.startsWith("META:")) {
+      //         const meta = JSON.parse(msg.data.replace("META:", ""));
+      //         fileName = meta.fileName;
+      //         fileType = meta.fileType;
+      //         fileId = meta.fileId;
+      //         setReceiving(prevState => ([
+      //           ...prevState,
+      //           {
+      //             id: fileId,
+      //             name: fileName,
+      //             type: fileType,
+      //             url: null,
+      //             percentage: 0
+      //           }
+      //         ]));
+      //       } else if (msg.data.startsWith("PERCENTAGE:")) {
+      //         const percentage = msg.data.replace("PERCENTAGE:", "");
+      //         setReceiving(prevState => prevState.map(item => {
+      //           return item.id === fileId ? {
+      //             ...item,
+      //             percentage: parseInt(percentage)
+      //           } : item;
+      //         }));
+      //         setPercentage(parseInt(percentage));
+      //       } else if (msg.data === "EOF") {
+      //         const blob = new Blob(received, { type: fileType });
+      //         const url = URL.createObjectURL(blob);
+      //         setReceiving(prevState => prevState.map(item => {
+      //           return item.id === fileId ? {
+      //             ...item,
+      //             url,
+      //             percentage: 100
+      //           } : item;
+      //         }));
+      //         received = [];
+      //         sounds.messagenotification?.play();
+
+      //         socket.emit("files-counter", { 
+      //           status: 'success',
+      //         });
+      //         setPercentage(0);
+      //       }
+      //     } else {
+      //       received.push(msg.data);
+      //     }
+      //   };
+      // };
 
       pc.current.onconnectionstatechange = () => {
         console.log("Connection state:", pc.current.connectionState);
@@ -345,40 +412,60 @@ function Room() {
     console.log('startConnection');
   };
 
-  const sendFile = (file) => {    
+  const sendFile = (file) => {
     const metadata = {
       fileId: uuidv4(),
       fileName: file.name,
-      fileType: file.type
+      fileType: file.type,
     };
+
     channel.current.send("META:" + JSON.stringify(metadata));
-    setSending(prevState => ([
+
+    setSending((prevState) => [
       ...prevState,
       {
         id: metadata.fileId,
         name: metadata.fileName,
         type: metadata.fileType,
         url: null,
-        percentage: 0
-      }
-    ]));
+        percentage: 0,
+      },
+    ]);
+
     const chunkSize = 16 * 1024;
     let offset = 0;
     const reader = new FileReader();
 
-    reader.onload = (e) => {
-      channel.current.send(e.target.result);
-      offset += chunkSize;
+    const sendChunk = (chunk) => {
+      if (channel.current.bufferedAmount > 64 * 1024) {
+        // too full → wait for "bufferedamountlow"
+        channel.current.onbufferedamountlow = () => {
+          channel.current.onbufferedamountlow = null;
+          channel.current.send(chunk);
+          offset += chunkSize;
+          continueReading();
+        };
+      } else {
+        channel.current.send(chunk);
+        offset += chunkSize;
+        continueReading();
+      }
+    };
 
+    const continueReading = () => {
       const percentage = Math.min((offset / file.size) * 100, 100);
       channel.current.send("PERCENTAGE:" + percentage);
-      setSending(prevState => prevState.map(item => {
-        return item.id === metadata.fileId ? {
-          ...item,
-          percentage: parseInt(percentage)
-        } : item;
-      }));
+
+      setSending((prevState) =>
+        prevState.map((item) =>
+          item.id === metadata.fileId
+            ? { ...item, percentage: parseInt(percentage) }
+            : item
+        )
+      );
+
       setPercentage(parseInt(percentage));
+
       if (offset < file.size) {
         readSlice(offset);
       } else {
@@ -392,8 +479,65 @@ function Room() {
       reader.readAsArrayBuffer(slice);
     };
 
+    reader.onload = (e) => {
+      sendChunk(e.target.result);
+    };
+
+    // set a low threshold for backpressure handling
+    channel.current.bufferedAmountLowThreshold = 32 * 1024;
+
     readSlice(0);
   };
+
+  // const sendFile = (file) => {    
+  //   const metadata = {
+  //     fileId: uuidv4(),
+  //     fileName: file.name,
+  //     fileType: file.type
+  //   };
+  //   channel.current.send("META:" + JSON.stringify(metadata));
+  //   setSending(prevState => ([
+  //     ...prevState,
+  //     {
+  //       id: metadata.fileId,
+  //       name: metadata.fileName,
+  //       type: metadata.fileType,
+  //       url: null,
+  //       percentage: 0
+  //     }
+  //   ]));
+  //   const chunkSize = 16 * 1024;
+  //   let offset = 0;
+  //   const reader = new FileReader();
+
+  //   reader.onload = (e) => {
+  //     channel.current.send(e.target.result);
+  //     offset += chunkSize;
+
+  //     const percentage = Math.min((offset / file.size) * 100, 100);
+  //     channel.current.send("PERCENTAGE:" + percentage);
+  //     setSending(prevState => prevState.map(item => {
+  //       return item.id === metadata.fileId ? {
+  //         ...item,
+  //         percentage: parseInt(percentage)
+  //       } : item;
+  //     }));
+  //     setPercentage(parseInt(percentage));
+  //     if (offset < file.size) {
+  //       readSlice(offset);
+  //     } else {
+  //       channel.current.send("EOF");
+  //       setPercentage(0);
+  //     }
+  //   };
+
+  //   const readSlice = (o) => {
+  //     const slice = file.slice(o, o + chunkSize);
+  //     reader.readAsArrayBuffer(slice);
+  //   };
+
+  //   readSlice(0);
+  // };
 
   const onSubmit = async (values, { setSubmitting, setErrors }) => {
     socket.emit("join-room", { 
