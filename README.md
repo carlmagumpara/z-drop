@@ -20,7 +20,7 @@ npm start          # http://localhost:4000
 
 ## Deploy to Vercel
 
-The repo includes `vercel.json` and `api/server.js`, so Vercel builds the Vite client into `client/dist` and serves the API/WebSocket server as a Node.js Function at `/api/server`.
+`app.js` is the single server: Vercel builds it as one Express Function that serves the built client, the REST API and Socket.IO. `client/dist/**` is bundled into that Function via `vercel.json`'s `includeFiles`.
 
 ```bash
 vercel            # preview deployment
@@ -29,7 +29,7 @@ vercel --prod     # production deployment
 
 No environment variables are required: the client uses the same origin in production. Optional overrides live in `client/.env.example` and `.env.example`.
 
-Socket.IO is configured for the WebSocket transport only (Vercel Functions cannot use sticky long-polling sessions) and uses the path `/api/server/`. REST calls go to the same Function route (`/api/server`) with an `action` in the body or query string, since a Function only owns one exact route. The server and client re-announce presence and rejoin rooms after a reconnect, which matters because Vercel closes sockets when a Function reaches its max duration.
+Socket.IO is configured for the WebSocket transport only (Vercel Functions cannot use sticky long-polling sessions) and uses `/socket.io`. The server and client re-announce presence and rejoin rooms after a reconnect, which matters because Vercel closes sockets when a Function reaches its max duration.
 
 ## State: no Redis, no external store
 

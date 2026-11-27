@@ -9,7 +9,6 @@ import * as store from './store.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const isVercel = process.env.VERCEL === '1';
 const port = process.env.PORT || 4000;
 
 const defaultOrigins = ['http://localhost:5173', 'http://localhost:4000'];
@@ -24,9 +23,8 @@ const corsConfig = {
   credentials: true,
 };
 
-// Vercel serves api/server.js at /api/server; the trailing slash keeps the
-// Socket.IO endpoint distinct from the REST endpoint on that same route.
-const socketPath = process.env.SOCKET_PATH || (isVercel ? '/api/server/' : '/socket.io');
+// One server owns every route, so Socket.IO can use its default path.
+const socketPath = process.env.SOCKET_PATH || '/socket.io';
 
 function broadcastRoomUsers(io, roomId) {
   const clients = io.sockets.adapter.rooms.get(roomId);
@@ -227,38 +225,13 @@ export function createApp() {
   api.post('/create-room', (req, res) => create(req.body ?? {}, res));
   api.get('/messages/:room_id', (req, res) => history(req.params.room_id, res));
 
-  // A function on Vercel is served at one exact route, so the client calls
-  // /api/server with an action instead of using extra path segments. Socket.IO
-  // uses the same route with a trailing slash (see socketPath above).
-  api.all('/', (req, res) => {
-    const action = req.body?.action ?? req.query.action;
-
-    if (action === 'create-room') {
-      const { action: _action, ...payload } = req.body ?? {};
-      return create(payload, res);
-    }
-
-    if (action === 'messages') {
-      return history(req.query.room_id, res);
-    }
-
-    if (!action || action === 'health') {
-      return health(req, res);
-    }
-
-    res.status(400).json({ message: `Unknown action: ${action}` });
-  });
-
-  // /api/* is used locally; /api/server is the Vercel Function route.
   app.use('/api', api);
-  app.use('/api/server', api);
 
-  if (!isVercel) {
-    app.use(express.static(join(__dirname, 'client', 'dist')));
-    app.get(/(.*)/, (req, res) => {
-      res.sendFile(join(__dirname, 'client', 'dist', 'index.html'));
-    });
-  }
+  // The same server serves the built client and handles client-side routing.
+  app.use(express.static(join(__dirname, 'client', 'dist')));
+  app.get(/(.*)/, (req, res) => {
+    res.sendFile(join(__dirname, 'client', 'dist', 'index.html'));
+  });
 
   return app;
 }
@@ -274,9 +247,9 @@ export function createHttpServer() {
   return server;
 }
 
-// Only listen when this file is run directly (`npm start`, `npm run dev`, or
-// Vercel's dev command). The deployed Function imports api/server.js instead,
-// so app.js is never the entry point there.
-if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
-  createHttpServer().listen(port, () => console.log(`zDrop server listening on port ${port}`));
-}
+// This is the single entry point for local runs and for Vercel. Vercel
+// intercepts listen() and proxies requests to this server.
+const server = createHttpServer();
+server.listen(port, () => console.log(`zDrop server listening on port ${port}`));
+
+export default server;

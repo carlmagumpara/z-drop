@@ -1,9 +1,10 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "framework": null,
+  "framework": "express",
   "buildCommand": "npm run build",
-  "outputDirectory": "client/dist",
-  "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
-  ]
+  "functions": {
+    "app.js": {
+      "includeFiles": "client/dist/**/*"
+    }
+  }
 }
