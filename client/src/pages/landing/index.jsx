@@ -3,7 +3,8 @@ import { Container, Button } from 'react-bootstrap';
 import { IoHeart } from 'react-icons/io5';
 import { BsFillSendArrowUpFill } from 'react-icons/bs';
 import { IoDocumentLock } from 'react-icons/io5';
-import CountUp from 'react-countup';
+import countUpModule from 'react-countup';
+import { resolveCjsDefault } from '@/shared/cjs-default';
 import { usePresence } from '@/contexts/presence';
 import { useGlobalModal, MODAL_TYPES } from '@/contexts/global-modal';
 import { createRoom } from '@/shared/api';
@@ -14,6 +15,7 @@ const imageModules = import.meta.glob('@/assets/formats/*.{png,jpg,jpeg,gif,svg}
   import: 'default',
 });
 const imageUrls = Object.values(imageModules);
+const CountUp = resolveCjsDefault(countUpModule);
 
 const positions = [
   ["68.0079vh", "78.1169vw", 9.8137],

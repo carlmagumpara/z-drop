@@ -1,9 +1,12 @@
 import { useState } from 'react';
 import { Modal, Button, Form, InputGroup } from 'react-bootstrap';
-import RQRCode from 'react-qr-code';
+import qrCodeModule from 'react-qr-code';
+import { resolveCjsDefault } from '@/shared/cjs-default';
 import { FaCopy } from 'react-icons/fa';
 import { useGlobalModal, MODAL_TYPES } from '../global-modal';
 import { useMessage } from '../message';
+
+const RQRCode = resolveCjsDefault(qrCodeModule);
 
 function QRCode({ url = '' }) {
   const messageApi = useMessage();
