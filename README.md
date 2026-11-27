@@ -1,1 +1,48 @@
-# fs-server
+# zDrop
+
+Peer-to-peer file sharing (WebRTC) with chat rooms, built with React + Vite and an Express + Socket.IO server.
+
+## Run locally
+
+```bash
+npm install
+npm start          # API + Socket.IO on http://localhost:4000
+npm --prefix client install
+npm --prefix client run dev   # Vite on http://localhost:5173
+```
+
+Or build the client and let Express serve it:
+
+```bash
+npm run build
+npm start          # http://localhost:4000
+```
+
+## Deploy to Vercel
+
+The repo includes `vercel.json` and `api/server.js`, so Vercel builds the Vite client into `client/dist` and serves the API/WebSocket server as a Node.js Function at `/api/server`.
+
+```bash
+vercel            # preview deployment
+vercel --prod     # production deployment
+```
+
+No environment variables are required: the client uses the same origin in production. Optional overrides live in `client/.env.example` and `.env.example`.
+
+Socket.IO is configured for the WebSocket transport only (Vercel Functions cannot use sticky long-polling sessions) and uses the path `/api/server/`. REST calls go to the same Function route (`/api/server`) with an `action` in the body or query string, since a Function only owns one exact route. The server and client re-announce presence and rejoin rooms after a reconnect, which matters because Vercel closes sockets when a Function reaches its max duration.
+
+## State: no Redis, no external store
+
+All state is **in-memory and per-process**: rooms, chat history (capped at 500 messages per room), the file counter, known users, and time-limited room password grants. See `store.js`.
+
+Trade-offs to be aware of:
+
+- State is lost on cold start, restart, or redeploy — old room links will report "Room not found".
+- Different function instances do not share state, so keep the app to a single instance if you need people in the same room to see each other. Vercel pins each WebSocket connection to the instance that accepted it.
+- Analytics counters are best-effort and reset with the process.
+
+If durable or cross-instance state becomes a requirement, add a shared store — but that reintroduces the external dependency this version intentionally removed.
+
+## Security note
+
+An old Redis connection URL with embedded credentials was previously hardcoded in `app.js`. It has been removed from the code, but it still exists in git history. **Rotate/revoke those credentials**, and consider purging the history if the repository is public.

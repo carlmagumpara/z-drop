@@ -119,8 +119,8 @@ function Room() {
       });
     }
 
-    const handleBeforeUnload = (event) => {
-      if(room_status.status === 'success') {
+    const handleBeforeUnload = () => {
+      if(room_status?.status === 'success') {
         socket.emit("leave-room", { 
           room_id, 
           username, 
@@ -135,11 +135,17 @@ function Room() {
   }, [room_status]);
 
   useEffect(() => {
-    socket.emit("join-room", { 
-      room_id, 
-      username, 
-      user_id,
-    });
+    const join = () => {
+      socket.emit("join-room", {
+        room_id,
+        username,
+        user_id,
+      });
+    };
+
+    join();
+    // Vercel Functions close long-lived sockets at their max duration.
+    socket.on("connect", join);
 
     socket.on("joined", (data) => {
       messageApi.info(`${data.username} joined the room`);
@@ -196,6 +202,7 @@ function Room() {
     });
 
     return () => {
+      socket.off("connect", join);
       socket.off("joined");
       socket.off("room-status");
       socket.off("left");

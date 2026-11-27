@@ -8,9 +8,10 @@ import { usePresence } from '@/contexts/presence';
 import { useGlobalModal, MODAL_TYPES } from '@/contexts/global-modal';
 import { createRoom } from '@/shared/api';
 
-const imageModules = import.meta.glob('@/assets/formats/*.{png,jpg,jpeg,gif,svg}', { 
-  eager: true, 
-  as: 'url' 
+const imageModules = import.meta.glob('@/assets/formats/*.{png,jpg,jpeg,gif,svg}', {
+  eager: true,
+  query: '?url',
+  import: 'default',
 });
 const imageUrls = Object.values(imageModules);
 

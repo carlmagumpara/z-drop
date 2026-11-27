@@ -2,292 +2,281 @@ import express from 'express';
 import { createServer } from 'node:http';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { createClient } from 'redis';
 import { Server } from 'socket.io';
 import cors from 'cors';
+import * as store from './store.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const redis = createClient({ 
-  url: 'rediss://red-d38ek3buibrs739ogjo0:LFbs4Be3hkI0pJub0yr58dL3bXR7vUwi@singapore-keyvalue.render.com:6379',
-  socket: {
-    reconnectStrategy: (retries) => {
-      if (retries > 10) {
-        console.error('Too many retries. Giving up.');
-        return new Error('Retry limit reached');
-      }
+const isVercel = process.env.VERCEL === '1';
+const port = process.env.PORT || 4000;
 
-      console.log(`Reconnecting attempt #${retries}...`);
-
-      return Math.min(retries * 100, 3000);
-    }
-  }
-});
-
-redis.on('error', (err) => console.log('Redis Client Error', err));
-redis.on('reconnecting', () => console.log('Redis client is reconnecting...'));
-redis.on('ready', () => console.log('Redis client is ready.'));
-redis.on('end', () => console.log('Redis client is end.'));
-
-redis.connect();
+const defaultOrigins = ['http://localhost:5173', 'http://localhost:4000'];
+const configuredOrigins = (process.env.CORS_ORIGINS ?? '')
+  .split(',')
+  .map(origin => origin.trim())
+  .filter(Boolean);
 
 const corsConfig = {
-  origin: ["http://localhost:5173", "http://localhost:4000"],
-  methods: ["GET", "POST", "PUT", "DELETE"],
+  origin: configuredOrigins.length ? configuredOrigins : defaultOrigins,
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true,
 };
 
-const app = express();
-const server = createServer(app);
-const io = new Server(server, {
-  cors: corsConfig
-});
+// Vercel serves api/server.js at /api/server; the trailing slash keeps the
+// Socket.IO endpoint distinct from the REST endpoint on that same route.
+const socketPath = process.env.SOCKET_PATH || (isVercel ? '/api/server/' : '/socket.io');
 
-const port = process.env.PORT || 4000;
+function broadcastRoomUsers(io, roomId) {
+  const clients = io.sockets.adapter.rooms.get(roomId);
+  const users = [];
 
-let onlineUsers = new Map();
-
-app.use(cors(corsConfig));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(express.static(join(__dirname, "client", "dist")));
-
-app.post('/api/create-room', async (req, res) => {
-  const body = req.body;
-
-  await redis.hSet(`room:${body.room_id}`, {
-    ...body,
-    created_at: Date.now()
-  });
-  const room = await redis.hGetAll(`room:${body.room_id}`);
-
-  res.json({
-    data: room,
-    message: "Room Created!",
-  });
-});
-
-app.get('/api/messages/:room_id', async (req, res) => {
-  const messages = await redis.lRange(`chat:messages-${req.params.room_id}`, 0, -1);
-
-  res.json({
-    data: messages.map(message => JSON.parse(message)),
-    message: "Room Created!",
-  });
-});
-
-app.get(/(.*)/, (req, res, next) => {
-  res.sendFile(join(__dirname, "client", "dist", "index.html"));
-});
-
-io.on('connection', (socket) => {
-  console.log("User connected:", socket.id);
-
-  socket.on("files-counter", async (data) => {
-    await redis.incr("files:counter");
-    const files = await redis.get("files:counter");
-    io.emit("total_files", files);
-  });
-
-  socket.on("user_online", async ({ user_id, username }) => {
-    onlineUsers.set(user_id, socket.id);
-    console.log(`${username} is online`);
-    await redis.sAdd("users", user_id);
-    const users = await redis.sMembers("users");
-    const files = await redis.get("files:counter");
-
-    io.emit("total_files", files);
-    io.emit("total_users", users.length);
-    io.emit("update_users", Array.from(onlineUsers.keys()));
-  });
-
-  socket.on("join-room", async ({ room_id, password, user_id, username }) => {
-    const exists = await redis.exists(`room:${room_id}`);
-
-    if(!exists) {
-      socket.emit("room-status", {
-        data: {},
-        message: "Room not found!",
-        status: "not-found"
-      });
-      return;
-    }
-
-    const room = await redis.hGetAll(`room:${room_id}`);
-
-    if(room.password !== '' && room.owner_id !== user_id) {
-      const has_access = await redis.exists(`room-passwords:${user_id}-${room_id}`);
-
-      if(!has_access) {
-        if(!password) {
-          socket.emit("room-status", {
-            data: {},
-            message: "Please enter room password",
-            status: "enter-password"
-          });
-
-          return;
-        }
-        
-        if(room.password !== password) {
-          socket.emit("room-status", {
-            data: {},
-            message: "Wrong password!",
-            status: "wrong-password"
-          });
-
-          return;
-        }
-        await redis.set(`room-passwords:${user_id}-${room_id}`, 'true', { 
-          EX: 60 * 60 * 60 
-        });
-      }
-    }
-
-    console.log(`${username} joined room: ${room_id}`);
-    socket.join(room_id);
-    // check room if theres a password
-    socket.emit("room-status", {
-      data: room,
-      message: "Joining success",
-      status: "success"
-    });
-    // if success
-    socket.to(room_id).emit("joined", {
-      user_id, 
-      username,
-      socket_id: socket.id
-    });
-    socket.data.username = username;
-    socket.data.user_id = user_id;
-    
-    const clients = io.sockets.adapter.rooms.get(room_id);
-    const users = [];
-
-    if (clients) {
-      for (const clientId of clients) {
-        const clientSocket = io.sockets.sockets.get(clientId);
+  if (clients) {
+    for (const clientId of clients) {
+      const clientSocket = io.sockets.sockets.get(clientId);
+      if (clientSocket) {
         users.push([clientSocket.data.user_id, clientSocket.data.username, clientId]);
       }
     }
+  }
 
-    io.to(room_id).emit("room-users", users);
-  });
+  io.to(roomId).emit('room-users', users);
+}
 
-  socket.on("leave-room", ({ room_id, user_id, username }) => {
-    socket.leave(room_id);
-    console.log(`${username} left room: ${room_id}`);
-    socket.to(room_id).emit("left", { user_id, username });
-  });
+function registerSockets(io) {
+  const onlineUsers = new Map(); // user_id -> socket.id
 
-  socket.on("on-message", async ({ room_id, type, data }) => {
-    io.to(room_id).emit("message", {
-      type,
-      data,
+  io.on('connection', socket => {
+    console.log('User connected:', socket.id);
+
+    socket.on('files-counter', () => {
+      io.emit('total_files', store.incrementFiles());
     });
 
-    if(type === 'message') {
-      await redis.rPush(`chat:messages-${room_id}`, JSON.stringify(data));
-    }
+    socket.on('user_online', ({ user_id, username } = {}) => {
+      if (!user_id) return;
 
-    if(type === 'read') {
-      const messages = await redis.lRange(`chat:messages-${room_id}`, 0, -1);
+      onlineUsers.set(user_id, socket.id);
+      store.markUserOnline(user_id);
+      console.log(`${username ?? user_id} is online`);
 
-      const index = messages.findIndex(message=> {
-        const parsed = JSON.parse(message);
-        return parsed.id === data.message_id;
-      });
+      io.emit('total_files', store.getFilesCount());
+      io.emit('total_users', store.getUserCount());
+      io.emit('update_users', Array.from(onlineUsers.keys()));
+    });
 
-      if (index !== -1) {
-        const updated = JSON.parse(messages[index]);
+    socket.on('join-room', ({ room_id, password, user_id, username } = {}) => {
+      const room = store.getRoom(room_id);
 
-        updated.readers = [
-          ...(updated.readers ?? []),
-          data
-        ];
-        await redis.lSet(
-          `chat:messages-${room_id}`, 
-          index, 
-          JSON.stringify(updated)
-        );
-      };
-    }
+      if (!room) {
+        socket.emit('room-status', {
+          data: {},
+          message: 'Room not found!',
+          status: 'not-found',
+        });
+        return;
+      }
 
-    if(type === 'react') {
-      const messages = await redis.lRange(`chat:messages-${room_id}`, 0, -1);
-
-      const index = messages.findIndex(message=> {
-        const parsed = JSON.parse(message);
-        return parsed.id === data.message_id;
-      });
-
-      if (index !== -1) {
-        const updated = JSON.parse(messages[index]);
-        const reactions = updated.reactions ?? [];
-
-        if(!reactions.some(item => item.user_id === data.user_id)) {
-          updated.reactions = [
-            ...reactions, 
-            data
-          ];
-        } else {
-          const react = reactions.find(item => item.user_id === data.user_id);
-          if(react.emoji === data.emoji) {
-            updated.reactions = reactions.filter(item => item.user_id !== data.user_id);
-          } else {
-            updated.reactions = reactions.map(item => item.user_id === data.user_id ? data : item);
-          }
+      if (room.password && room.owner_id !== user_id && !store.hasRoomAccess(user_id, room_id)) {
+        if (!password) {
+          socket.emit('room-status', {
+            data: {},
+            message: 'Please enter room password',
+            status: 'enter-password',
+          });
+          return;
         }
 
-        await redis.lSet(
-          `chat:messages-${room_id}`, 
-          index, 
-          JSON.stringify(updated)
-        );
-      };
-    }
-  });
+        if (room.password !== password) {
+          socket.emit('room-status', {
+            data: {},
+            message: 'Wrong password!',
+            status: 'wrong-password',
+          });
+          return;
+        }
 
-  socket.on("offer", (data) => {
-    socket.to(data.to).emit("offer", { 
-      from: socket.id, 
-      sdp: data.sdp 
-    });
-  });
-
-  socket.on("answer", (data) => {
-    socket.to(data.to).emit("answer", { 
-      from: socket.id, 
-      sdp: data.sdp 
-    });
-  });
-
-  socket.on("ice-candidate", (data) => {
-    socket.to(data.to).emit("ice-candidate", { 
-      from: socket.id, 
-      candidate: data.candidate 
-    });
-  });
-
-  socket.on("disconnect", () => {
-    console.log('a user disconnect');
-
-    let userId = null;
-
-    for (let [uid, sid] of onlineUsers.entries()) {
-      if (sid === socket.id) {
-        userId = uid;
-        onlineUsers.delete(uid);
-        break;
+        store.grantRoomAccess(user_id, room_id);
       }
-    }
 
-    if (userId) {
-      console.log(`${userId} went offline`);
-      io.emit("update_users", Array.from(onlineUsers.keys()));
-    }
+      console.log(`${username ?? user_id} joined room: ${room_id}`);
+      socket.join(room_id);
+      socket.data.username = username;
+      socket.data.user_id = user_id;
+
+      socket.emit('room-status', {
+        data: room,
+        message: 'Joining success',
+        status: 'success',
+      });
+      socket.to(room_id).emit('joined', {
+        user_id,
+        username,
+        socket_id: socket.id,
+      });
+
+      broadcastRoomUsers(io, room_id);
+    });
+
+    socket.on('leave-room', ({ room_id, user_id, username } = {}) => {
+      socket.leave(room_id);
+      console.log(`${username ?? user_id} left room: ${room_id}`);
+      socket.to(room_id).emit('left', { user_id, username });
+      broadcastRoomUsers(io, room_id);
+    });
+
+    socket.on('on-message', ({ room_id, type, data } = {}) => {
+      if (!room_id) return;
+
+      io.to(room_id).emit('message', { type, data });
+
+      if (type === 'message') {
+        store.addMessage(room_id, data);
+      }
+
+      if (type === 'read') {
+        store.updateMessage(room_id, data?.message_id, message => ({
+          ...message,
+          readers: [...(message.readers ?? []), data],
+        }));
+      }
+
+      if (type === 'react') {
+        store.updateMessage(room_id, data?.message_id, message => {
+          const reactions = message.reactions ?? [];
+          const existing = reactions.find(item => item.user_id === data.user_id);
+
+          if (!existing) {
+            return { ...message, reactions: [...reactions, data] };
+          }
+
+          if (existing.emoji === data.emoji) {
+            return { ...message, reactions: reactions.filter(item => item.user_id !== data.user_id) };
+          }
+
+          return {
+            ...message,
+            reactions: reactions.map(item => item.user_id === data.user_id ? data : item),
+          };
+        });
+      }
+    });
+
+    socket.on('offer', data => {
+      socket.to(data.to).emit('offer', { from: socket.id, sdp: data.sdp });
+    });
+
+    socket.on('answer', data => {
+      socket.to(data.to).emit('answer', { from: socket.id, sdp: data.sdp });
+    });
+
+    socket.on('ice-candidate', data => {
+      socket.to(data.to).emit('ice-candidate', { from: socket.id, candidate: data.candidate });
+    });
+
+    socket.on('disconnect', () => {
+      const roomsLeft = [...socket.rooms].filter(room => room !== socket.id);
+
+      for (const roomId of roomsLeft) {
+        broadcastRoomUsers(io, roomId);
+      }
+
+      for (const [userId, socketId] of onlineUsers.entries()) {
+        if (socketId === socket.id) {
+          onlineUsers.delete(userId);
+          console.log(`${userId} went offline`);
+          io.emit('update_users', Array.from(onlineUsers.keys()));
+          break;
+        }
+      }
+    });
   });
-});
+}
 
-server.listen(port, () => console.log(`Example app listening on port ${port}`));
+export function createApp() {
+  const app = express();
+
+  app.use(cors(corsConfig));
+  app.use(express.json());
+  app.use(express.urlencoded({ extended: true }));
+
+  const api = express.Router();
+
+  const health = (req, res) => {
+    res.json({ ok: true, stats: store.getStats() });
+  };
+
+  const create = (payload, res) => {
+    try {
+      const room = store.createRoom(payload);
+      res.json({ data: room, message: 'Room Created!' });
+    } catch (error) {
+      res.status(400).json({ data: {}, message: error.message });
+    }
+  };
+
+  const history = (room_id, res) => {
+    res.json({
+      data: store.getMessages(room_id),
+      message: 'Messages fetched!',
+    });
+  };
+
+  api.get('/health', health);
+  api.post('/create-room', (req, res) => create(req.body ?? {}, res));
+  api.get('/messages/:room_id', (req, res) => history(req.params.room_id, res));
+
+  // A function on Vercel is served at one exact route, so the client calls
+  // /api/server with an action instead of using extra path segments. Socket.IO
+  // uses the same route with a trailing slash (see socketPath above).
+  api.all('/', (req, res) => {
+    const action = req.body?.action ?? req.query.action;
+
+    if (action === 'create-room') {
+      const { action: _action, ...payload } = req.body ?? {};
+      return create(payload, res);
+    }
+
+    if (action === 'messages') {
+      return history(req.query.room_id, res);
+    }
+
+    if (!action || action === 'health') {
+      return health(req, res);
+    }
+
+    res.status(400).json({ message: `Unknown action: ${action}` });
+  });
+
+  // /api/* is used locally; /api/server is the Vercel Function route.
+  app.use('/api', api);
+  app.use('/api/server', api);
+
+  if (!isVercel) {
+    app.use(express.static(join(__dirname, 'client', 'dist')));
+    app.get(/(.*)/, (req, res) => {
+      res.sendFile(join(__dirname, 'client', 'dist', 'index.html'));
+    });
+  }
+
+  return app;
+}
+
+export function createHttpServer() {
+  const server = createServer(createApp());
+  const io = new Server(server, {
+    cors: corsConfig,
+    path: socketPath,
+  });
+
+  registerSockets(io);
+  return server;
+}
+
+// Only listen when this file is run directly (`npm start`, `npm run dev`, or
+// Vercel's dev command). The deployed Function imports api/server.js instead,
+// so app.js is never the entry point there.
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+  createHttpServer().listen(port, () => console.log(`zDrop server listening on port ${port}`));
+}

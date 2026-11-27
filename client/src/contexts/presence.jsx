@@ -8,11 +8,28 @@ const PresenceContext = createContext();
 
 export const usePresence = () => useContext(PresenceContext);
 
+function getOrCreateIdentity() {
+  let user_id = localStorage.getItem('user_id');
+  let username = localStorage.getItem('username');
+
+  if (!user_id || !username) {
+    user_id = uuidv4();
+    username = `${generateName()}_${Math.floor(Math.random() * 1000)}`.replace(/ /g, '_');
+
+    localStorage.setItem('user_id', user_id);
+    localStorage.setItem('username', username);
+    localStorage.setItem('auto_download', 'true');
+  }
+
+  return { user_id, username };
+}
+
 function PresenceProvider({ children }) {
+  const [identity] = useState(getOrCreateIdentity);
   const [is_connected, setIsConnected] = useState(socket.connected);
-  const [user_id, setUserId] = useState(localStorage.getItem("user_id"));
-  const [username, setUserName] = useState(localStorage.getItem("username"));
-  const [auto_dowload, setAutoDownload] = useState(localStorage.getItem("auto_download") === 'true');
+  const [user_id, setUserId] = useState(identity.user_id);
+  const [username, setUserName] = useState(identity.username);
+  const [auto_dowload, setAutoDownload] = useState(localStorage.getItem('auto_download') === 'true');
   const [users, setUsers] = useState([]);
   const [analytics, setAnalytics] = useState({
     files: 0,
@@ -20,59 +37,27 @@ function PresenceProvider({ children }) {
   });
 
   useEffect(() => {
-    if(!user_id || !username) {
-      const _user_id = uuidv4();
-      const _username = `${generateName()}_${Math.floor(Math.random() * 1000)}`.replace(/ /g,"_");
-
-      localStorage.setItem("user_id", _user_id);
-      localStorage.setItem("username", _username);
-      localStorage.setItem("auto_download", true);
-
-      setUserId(_user_id);
-      setUserName(_username);
-      setAutoDownload(true);
-
-      return;
-    }
-
-    const onConnect = () => {
-      socket.emit("user_online", {
-        user_id,
-        username
-      });
+    const announce = () => {
       setIsConnected(true);
+      socket.emit('user_online', { user_id, username });
     };
 
-    const onDisconnect = () => {
-      setIsConnected(false);
-    };
+    const onDisconnect = () => setIsConnected(false);
+    const onUpdateUsers = value => setUsers(value);
+    const onTotalUsers = value => setAnalytics(prev => ({ ...prev, users: value ?? 0 }));
+    const onTotalFiles = value => setAnalytics(prev => ({ ...prev, files: value ?? 0 }));
 
-    const onUpdateUsers = (value) => {
-      setUsers(value);
-    };
-
-    const onTotalUsers = (value) => {
-      setAnalytics(prevState => ({
-        ...prevState,
-        users: value ?? 0,
-      }));
-    };
-
-    const onTotalFiles = (value) => {
-      setAnalytics(prevState => ({
-        ...prevState,
-        files: value ?? 0,
-      }));
-    };
-
-    socket.on('connect', onConnect);
+    socket.on('connect', announce);
     socket.on('disconnect', onDisconnect);
     socket.on('update_users', onUpdateUsers);
     socket.on('total_users', onTotalUsers);
     socket.on('total_files', onTotalFiles);
 
+    // The socket can already be open before this effect runs (e.g. first load).
+    if (socket.connected) announce();
+
     return () => {
-      socket.off('connect', onConnect);
+      socket.off('connect', announce);
       socket.off('disconnect', onDisconnect);
       socket.off('update_users', onUpdateUsers);
       socket.off('total_users', onTotalUsers);
@@ -80,7 +65,7 @@ function PresenceProvider({ children }) {
     };
   }, [user_id, username]);
 
-  if(!username || !user_id || !is_connected) {
+  if (!username || !user_id || !is_connected) {
     return <Loading />;
   }
 
@@ -89,17 +74,18 @@ function PresenceProvider({ children }) {
       value={{
         user_id,
         username,
-        auto_dowload, 
+        auto_dowload,
+        setUserId,
         setUserName,
         setAutoDownload,
         users,
         analytics,
-        is_connected
+        is_connected,
       }}
     >
       {children}
     </PresenceContext.Provider>
-  )
+  );
 }
 
 export default PresenceProvider;

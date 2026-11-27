@@ -2,9 +2,10 @@ import { useEffect, useRef } from 'react';
 import useInteraction from '@/hooks/use-interaction';
 import { Howl } from 'howler';
 
-const soundModules = import.meta.glob('@/assets/sounds/*.{mp3, m4a}', { 
-  eager: true, 
-  as: 'url' 
+const soundModules = import.meta.glob('@/assets/sounds/*.{mp3, m4a}', {
+  eager: true,
+  query: '?url',
+  import: 'default',
 });
 
 export default function useSound() {

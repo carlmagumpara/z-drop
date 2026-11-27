@@ -1,2 +1,10 @@
 node_modules
 .env
+.vercel/
+
+# Agent scratch (not deliverables until promoted)
+_plans/
+_docs/
+_runbooks/
+_tmp/
+.vercel
