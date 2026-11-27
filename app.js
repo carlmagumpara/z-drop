@@ -247,9 +247,13 @@ export function createHttpServer() {
   return server;
 }
 
-// This is the single entry point for local runs and for Vercel. Vercel
-// intercepts listen() and proxies requests to this server.
+// This is the single entry point for local runs and for Vercel.
 const server = createHttpServer();
-server.listen(port, () => console.log(`zDrop server listening on port ${port}`));
+
+// Vercel's runtime calls listen() on the exported server itself. Only bind a
+// port when this file is started directly (local `npm start`).
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+  server.listen(port, () => console.log(`zDrop server listening on port ${port}`));
+}
 
 export default server;
