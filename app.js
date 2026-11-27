@@ -1,7 +1,7 @@
 import express from 'express';
 import { createServer } from 'node:http';
 import { fileURLToPath } from 'node:url';
-import { dirname, join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 import { Server } from 'socket.io';
 import cors from 'cors';
 import * as store from './store.js';
@@ -254,9 +254,23 @@ export function createApp() {
   app.use('/api', api);
 
   // The same server serves the built client and handles client-side routing.
-  app.use(express.static(join(__dirname, 'client', 'dist')));
+  // Hashed assets can be cached forever; index.html must revalidate so clients
+  // pick up the newest hashed JS/CSS URLs after each deploy.
+  const distDir = join(__dirname, 'client', 'dist');
+  const noCache = (res) => res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+
+  app.use(express.static(distDir, {
+    setHeaders(res, filePath) {
+      if (basename(filePath) === 'index.html') {
+        noCache(res);
+      } else {
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      }
+    },
+  }));
   app.get(/(.*)/, (req, res) => {
-    res.sendFile(join(__dirname, 'client', 'dist', 'index.html'));
+    noCache(res);
+    res.sendFile(join(distDir, 'index.html'));
   });
 
   return app;
