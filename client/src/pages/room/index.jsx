@@ -7,6 +7,7 @@ import { FaQrcode } from 'react-icons/fa';
 import { IoMdChatboxes } from 'react-icons/io';
 import { IoDocumentLock } from 'react-icons/io5';
 import { socket } from '@/shared/socket';
+import { getRoom, saveRoom } from '@/shared/room-store';
 import { usePresence } from '@/contexts/presence';
 import { useMessage } from '@/contexts/message';
 import { useGlobalModal, MODAL_TYPES } from '@/contexts/global-modal';
@@ -29,6 +30,7 @@ function Room() {
   const messageApi = useMessage();
   const { user_id, username } = usePresence();
   const { chat, unread, toogleChat, offcanvasswidth } = useChat();
+  const isPrivate = searchParams.get('private') === '1';
   
   const [users, setUsers] = useState([]);
   const [receiving, setReceiving] = useState([]);
@@ -115,7 +117,7 @@ function Room() {
   useEffect(() => {
     if(room_status?.status === 'success' && searchParams.get('modal') !== 'false') {
       handleShow(MODAL_TYPES.QR_CODE, {
-        url: `${window.location.origin}/r/${room_id}?modal=false`,
+        url: `${window.location.origin}/r/${room_id}?modal=false&private=${isPrivate ? 1 : 0}`,
       });
     }
 
@@ -140,6 +142,8 @@ function Room() {
         room_id,
         username,
         user_id,
+        room: getRoom(room_id),
+        private: isPrivate,
       });
     };
 
@@ -171,6 +175,7 @@ function Room() {
         });
         setRoomStatus(data);
       } else {
+        saveRoom(data.data);
         setRoomStatus(data);
       }
     });
@@ -441,10 +446,12 @@ function Room() {
   };
 
   const onSubmit = async (values, { setSubmitting, setErrors }) => {
-    socket.emit("join-room", { 
-      room_id, 
-      username, 
+    socket.emit("join-room", {
+      room_id,
+      username,
       user_id,
+      room: getRoom(room_id),
+      private: isPrivate,
       ...values
     });
   };
@@ -523,7 +530,7 @@ function Room() {
                 size="lg"
                 variant="light"
                 onClick={() => handleShow(MODAL_TYPES.QR_CODE, {
-                  url: `${window.location.origin}/r/${room_id}?modal=false`,
+                  url: `${window.location.origin}/r/${room_id}?modal=false&private=${isPrivate ? 1 : 0}`,
                 })}
                 className="animate__animated animate__bounceIn"
               >

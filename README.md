@@ -37,8 +37,9 @@ All state is **in-memory and per-process**: rooms, chat history (capped at 500 m
 
 Trade-offs to be aware of:
 
-- State is lost on cold start, restart, or redeploy — old room links will report "Room not found".
+- State is lost on cold start, restart, or redeploy. Rooms self-heal when someone joins: the client sends its saved copy of the room (kept in `localStorage`), and the server recreates it if needed. A public room link with no saved copy is recreated as an empty public room; a private room link asks for the password and recreates the room with it.
 - Different function instances do not share state, so keep the app to a single instance if you need people in the same room to see each other. Vercel pins each WebSocket connection to the instance that accepted it.
+- Chat history is not restored with a room — only the room metadata (name/password/owner).
 - Analytics counters are best-effort and reset with the process.
 
 If durable or cross-instance state becomes a requirement, add a shared store — but that reintroduces the external dependency this version intentionally removed.

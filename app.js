@@ -26,6 +26,17 @@ const corsConfig = {
 // One server owns every route, so Socket.IO can use its default path.
 const socketPath = process.env.SOCKET_PATH || '/socket.io';
 
+function roomFromClient(payload, room_id) {
+  if (!payload || typeof payload !== 'object') return null;
+  if (payload.room_id && String(payload.room_id) !== String(room_id)) return null;
+
+  const room = { room_id: String(room_id) };
+  for (const field of ['name', 'password', 'owner_id']) {
+    if (typeof payload[field] === 'string') room[field] = payload[field];
+  }
+  return room;
+}
+
 function broadcastRoomUsers(io, roomId) {
   const clients = io.sockets.adapter.rooms.get(roomId);
   const users = [];
@@ -64,16 +75,31 @@ function registerSockets(io) {
       io.emit('update_users', Array.from(onlineUsers.keys()));
     });
 
-    socket.on('join-room', ({ room_id, password, user_id, username } = {}) => {
-      const room = store.getRoom(room_id);
+    socket.on('join-room', ({ room_id, password, user_id, username, room: clientRoom, private: isPrivate } = {}) => {
+      if (!room_id) return;
 
+      let room = store.getRoom(room_id);
+
+      // Rooms are in-memory only. Recreate one from the client's copy (or from
+      // the room's public/private marker) so shared links survive a cold start.
       if (!room) {
-        socket.emit('room-status', {
-          data: {},
-          message: 'Room not found!',
-          status: 'not-found',
-        });
-        return;
+        const restored = roomFromClient(clientRoom, room_id);
+
+        if (restored) {
+          room = store.createRoom(restored);
+        } else if (isPrivate) {
+          if (!password) {
+            socket.emit('room-status', {
+              data: {},
+              message: 'Please enter room password',
+              status: 'enter-password',
+            });
+            return;
+          }
+          room = store.createRoom({ room_id, name: '', password, owner_id: '' });
+        } else {
+          room = store.createRoom({ room_id, name: '', password: '', owner_id: '' });
+        }
       }
 
       if (room.password && room.owner_id !== user_id && !store.hasRoomAccess(user_id, room_id)) {

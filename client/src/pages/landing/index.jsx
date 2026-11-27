@@ -40,7 +40,7 @@ function Landing() {
         password: '',
         owner_id: user_id
       });
-      navigate(`/r/${data.room_id}`);
+      navigate(`/r/${data.room_id}?private=0`);
     } catch (error) {
       console.log(error);
     }
