@@ -549,121 +549,167 @@ function Room() {
     }
   };
 
-  const sendOneFile = (file) => new Promise((resolve) => {
-    const dataChannel = channel.current;
-    if (!dataChannel || dataChannel.readyState !== "open") {
-      messageApi.error("Not connected to that peer yet — wait for Connected and try again.");
+  // A picked file must wait for the data channel to finish negotiating/opening.
+  const waitForChannel = (dataChannel, timeoutMs = 20000) => new Promise((resolve, reject) => {
+    if (!dataChannel) {
+      reject(new Error("No peer connection"));
+      return;
+    }
+    if (dataChannel.readyState === "open") {
       resolve();
       return;
     }
-
-    const metadata = {
-      fileId: uuidv4(),
-      fileName: file.name,
-      fileType: file.type,
-    };
-    const transfer = { done: false, cancel: null };
-    activeTransfers.current.set(metadata.fileId, transfer);
-
-    setSending((prev) => [
-      ...prev,
-      { id: metadata.fileId, name: metadata.fileName, type: metadata.fileType, url: null, percentage: 0 },
-    ]);
-
-    const finish = (success) => {
-      if (transfer.done) return;
-      transfer.done = true;
-      activeTransfers.current.delete(metadata.fileId);
-      setSending((prev) =>
-        prev.map((item) =>
-          item.id === metadata.fileId
-            ? { ...item, percentage: success ? 100 : 0, failed: !success }
-            : item
-        )
-      );
-      setPercentage(0);
-      resolve();
-    };
-    transfer.cancel = () => finish(false);
-
-    const chunkSize = 16 * 1024;
-    let offset = 0;
-    const reader = new FileReader();
-
-    const reportProgress = () => {
-      const progress = Math.min(Math.round((offset / file.size) * 100), 100);
-      if (dataChannel.readyState === "open") {
-        dataChannel.send(`PERCENTAGE:${metadata.fileId}:${progress}`);
-      }
-      setSending((prev) =>
-        prev.map((item) =>
-          item.id === metadata.fileId ? { ...item, percentage: progress } : item
-        )
-      );
-      setPercentage(progress);
-    };
-
-    const readSlice = () => {
-      reader.readAsArrayBuffer(file.slice(offset, offset + chunkSize));
-    };
-
-    const writeChunk = () => {
-      if (transfer.done || dataChannel.readyState !== "open") {
-        finish(false);
-        return;
-      }
-      try {
-        dataChannel.send(reader.result);
-      } catch (err) {
-        console.error("Error sending file chunk", err);
-        finish(false);
-        return;
-      }
-      offset += reader.result.byteLength;
-      reportProgress();
-
-      if (offset < file.size) {
-        readSlice();
-      } else {
-        if (dataChannel.readyState === "open") {
-          dataChannel.send(`EOF:${metadata.fileId}`);
-        }
-        finish(true);
-      }
-    };
-
-    reader.onload = () => {
-      if (transfer.done) return;
-      if (dataChannel.bufferedAmount > 64 * 1024) {
-        // Resume once the channel drains. If it closes first, onclose marks
-        // the transfer failed so the queue never gets stuck.
-        dataChannel.onbufferedamountlow = () => {
-          dataChannel.onbufferedamountlow = null;
-          writeChunk();
-        };
-      } else {
-        writeChunk();
-      }
-    };
-    reader.onerror = () => finish(false);
-
-    try {
-      dataChannel.send(`META:${JSON.stringify(metadata)}`);
-      readSlice();
-    } catch (err) {
-      console.error("Error starting file transfer", err);
-      finish(false);
+    if (dataChannel.readyState === "closing" || dataChannel.readyState === "closed") {
+      reject(new Error("Connection closed"));
+      return;
     }
+
+    const cleanup = () => {
+      clearTimeout(timer);
+      dataChannel.removeEventListener("open", onOpen);
+      dataChannel.removeEventListener("close", onClose);
+    };
+    const onOpen = () => { cleanup(); resolve(); };
+    const onClose = () => { cleanup(); reject(new Error("Connection closed")); };
+    const timer = setTimeout(() => {
+      cleanup();
+      reject(new Error("Connection timed out"));
+    }, timeoutMs);
+
+    dataChannel.addEventListener("open", onOpen);
+    dataChannel.addEventListener("close", onClose);
   });
 
+  const sendOneFile = async (file, dataChannel) => {
+    try {
+      await waitForChannel(dataChannel);
+    } catch {
+      messageApi.error("Could not connect to that peer. Click their avatar and try again.");
+      return;
+    }
+
+    if (channel.current !== dataChannel || dataChannel.readyState !== "open") {
+      messageApi.error("The connection to that peer changed — select the file again.");
+      return;
+    }
+
+    return new Promise((resolve) => {
+      const metadata = {
+        fileId: uuidv4(),
+        fileName: file.name,
+        fileType: file.type,
+      };
+      const transfer = { done: false, cancel: null };
+      activeTransfers.current.set(metadata.fileId, transfer);
+
+      setSending((prev) => [
+        ...prev,
+        { id: metadata.fileId, name: metadata.fileName, type: metadata.fileType, url: null, percentage: 0 },
+      ]);
+
+      const finish = (success) => {
+        if (transfer.done) return;
+        transfer.done = true;
+        activeTransfers.current.delete(metadata.fileId);
+        setSending((prev) =>
+          prev.map((item) =>
+            item.id === metadata.fileId
+              ? { ...item, percentage: success ? 100 : 0, failed: !success }
+              : item
+          )
+        );
+        setPercentage(0);
+        resolve();
+      };
+      transfer.cancel = () => finish(false);
+
+      const chunkSize = 16 * 1024;
+      let offset = 0;
+      const reader = new FileReader();
+
+      const reportProgress = () => {
+        const progress = Math.min(Math.round((offset / file.size) * 100), 100);
+        if (dataChannel.readyState === "open") {
+          dataChannel.send(`PERCENTAGE:${metadata.fileId}:${progress}`);
+        }
+        setSending((prev) =>
+          prev.map((item) =>
+            item.id === metadata.fileId ? { ...item, percentage: progress } : item
+          )
+        );
+        setPercentage(progress);
+      };
+
+      const readSlice = () => {
+        reader.readAsArrayBuffer(file.slice(offset, offset + chunkSize));
+      };
+
+      const writeChunk = () => {
+        if (transfer.done || dataChannel.readyState !== "open") {
+          finish(false);
+          return;
+        }
+        try {
+          dataChannel.send(reader.result);
+        } catch (err) {
+          console.error("Error sending file chunk", err);
+          finish(false);
+          return;
+        }
+        offset += reader.result.byteLength;
+        reportProgress();
+
+        if (offset < file.size) {
+          readSlice();
+        } else {
+          if (dataChannel.readyState === "open") {
+            dataChannel.send(`EOF:${metadata.fileId}`);
+          }
+          finish(true);
+        }
+      };
+
+      reader.onload = () => {
+        if (transfer.done) return;
+        if (dataChannel.bufferedAmount > 64 * 1024) {
+          // Resume once the channel drains. If it closes first, onclose marks
+          // the transfer failed so the queue never gets stuck.
+          dataChannel.onbufferedamountlow = () => {
+            dataChannel.onbufferedamountlow = null;
+            writeChunk();
+          };
+        } else {
+          writeChunk();
+        }
+      };
+      reader.onerror = () => finish(false);
+
+      try {
+        dataChannel.send(`META:${JSON.stringify(metadata)}`);
+        readSlice();
+      } catch (err) {
+        console.error("Error starting file transfer", err);
+        finish(false);
+      }
+    });
+  };
+
   const sendFile = (file) => {
-    transferQueue.current.push(file);
+    // Capture the channel now: if the user clicks another peer before this
+    // one finishes negotiating, the queued file still targets the right peer.
+    const dataChannel = channel.current;
+    transferQueue.current.push({ file, dataChannel });
     if (sendingQueue.current) return;
+
+    if (!dataChannel || dataChannel.readyState !== "open") {
+      messageApi.info("Waiting for the peer connection…");
+    }
 
     sendingQueue.current = true;
     (async () => {
       while (transferQueue.current.length) {
-        await sendOneFile(transferQueue.current.shift());
+        const next = transferQueue.current.shift();
+        await sendOneFile(next.file, next.dataChannel);
       }
       sendingQueue.current = false;
     })();
