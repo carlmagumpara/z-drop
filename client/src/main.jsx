@@ -1,5 +1,4 @@
-import 'bootstrap/dist/css/bootstrap.min.css';
-import 'animate.css';
+import './index.css';
 import './index.scss'
 
 import { StrictMode } from 'react'

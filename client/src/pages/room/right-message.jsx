@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Image } from 'react-bootstrap';
+import { useState } from 'react';
+import { Image } from '@/ui';
 import Avatar from 'boring-avatars';
 import Picker from 'emoji-picker-react';
 import { usePresence } from '@/contexts/presence';
@@ -8,14 +8,14 @@ import useSound from './sounds';;
 import AddReaction from '@/assets/add-reaction.png';
 import { v4 as uuidv4 } from 'uuid';
 
-function RightMessage({ item, room_id, isLast }) {
+function RightMessage({ item, room_id }) {
   const sounds = useSound();
   const [hover, setHover] = useState(false);
   const { user_id, username } = usePresence();
 
   return (
     <div 
-      className={`message right position-relative ${isLast ? 'animate__animated animate__fadeInUp' : ''}`}
+      className="message right relative"
     >
       <div 
         className="avatar"
@@ -36,12 +36,12 @@ function RightMessage({ item, room_id, isLast }) {
             <p className="mb-0">{item.dateTime}</p>
           </div>
         </div>
-        <div className="d-flex justify-content-between align-items-center pt-1">
+        <div className="flex items-center justify-between pt-1">
           {item.readers.length ? (
-            <div className="d-flex justify-content-start align-items gap-1">
-              <span className="small">✓</span> {item.readers.map(reader => (
+            <div className="flex items-center justify-start gap-1">
+              <span className="text-sm">✓</span> {item.readers.map(reader => (
                 <div 
-                  className="animate__animated animate__fadeInDown animate__faster"
+                 
                   key={reader.user_id}
                   id={`${reader.user_id}-chat-avatar`}
                 >
@@ -55,9 +55,9 @@ function RightMessage({ item, room_id, isLast }) {
             </div>
           ) : <div />}
           {(item.reactions ?? []).length ? (
-            <div className="d-flex justify-content-end align-items gap-1 h6">
+            <div className="flex items-center justify-end gap-1 text-base">
               {(item.reactions ?? []).map((emoji, index) => (
-                <span key={`${emoji[0]}-${index}`} className="animate__animated animate__bounceIn">
+                <span key={`${emoji[0]}-${index}`}>
                   {`${emoji[0]} ${emoji[1]}`}
                 </span>
               ))}
@@ -74,14 +74,15 @@ function RightMessage({ item, room_id, isLast }) {
           <div
             onMouseOver={() => setHover(true)}
             onMouseOut={() => setHover(false)}
-            className="position-absolute"
+            className="absolute"
             style={{
               top: -50,
               left: 0,
               zIndex: 999
             }}
           >
-            <Picker 
+            <Picker
+              theme="dark"
               reactionsDefaultOpen={true}
               allowExpandReactions={false}
               onReactionClick={emojiObject => {

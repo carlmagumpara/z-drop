@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite';
 import path from 'path';
 import react from '@vitejs/plugin-react-swc';
+import tailwindcss from '@tailwindcss/vite';
 
 // One version string per build, appended to every generated asset URL (entry
 // JS, dynamic chunks and CSS). Vite already hashes the filenames; the query
@@ -27,7 +28,7 @@ function versionChunkImports() {
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), versionChunkImports()],
+  plugins: [react(), tailwindcss(), versionChunkImports()],
   experimental: {
     renderBuiltUrl(filename) {
       const url = filename.startsWith('/') ? filename : `/${filename}`;

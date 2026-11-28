@@ -1,7 +1,6 @@
 import { Fragment, useEffect, useState, useRef } from 'react';
-import { Form, InputGroup, Button, OverlayTrigger, Offcanvas, Badge } from 'react-bootstrap';
+import { Form, InputGroup, Button, Badge } from '@/ui';
 import Avatar from 'boring-avatars';
-import moment from 'moment';
 import { Formik } from 'formik';
 import * as Yup from 'yup';
 import { IoMdSend } from 'react-icons/io';
@@ -61,7 +60,7 @@ function Chat({ room_id = '' }) {
           behavior: "auto" 
         });
 
-        setOffCanvasWidth(offcanvasRef.current?.dialog?.clientWidth);
+        setOffCanvasWidth(offcanvasRef.current?.clientWidth);
       }, 0);
     } else {
       setOffCanvasWidth(0);
@@ -202,7 +201,7 @@ function Chat({ room_id = '' }) {
     return 'Multiple users are typing...';
   };
 
-  const onSubmit = async (values, { setSubmitting, setErrors, resetForm }) => {
+  const onSubmit = async (values, { resetForm }) => {
     socket.emit("on-message", {
       room_id,
       type: 'message',
@@ -223,58 +222,41 @@ function Chat({ room_id = '' }) {
   };
 
   return (
-    <Offcanvas 
-      show={chat} 
-      onHide={toogleChat}
-      placement="end"
-      backdrop={false}
+    <aside
       ref={offcanvasRef}
+      aria-hidden={!chat}
+      className={`fixed inset-y-0 right-0 z-[1045] flex w-full max-w-md flex-col border-l border-white/10 bg-[#0b1220]/95 shadow-2xl shadow-black/60 backdrop-blur-xl transition-transform duration-300 ${chat ? 'translate-x-0' : 'pointer-events-none translate-x-full'}`}
     >
-      <Offcanvas.Header closeButton>
-        <Offcanvas.Title>
-          Chat
-        </Offcanvas.Title>
-      </Offcanvas.Header>
-      <Offcanvas.Body 
-        className="p-0 d-flex flex-column"
-      >
+      <div className="flex items-center justify-between gap-3 border-b border-white/10 bg-white/[0.02] px-5 py-4">
+        <div>
+          <h2 className="text-base font-semibold text-white">Room chat</h2>
+          <p className="mt-0.5 text-xs text-slate-500">Talk while your files travel</p>
+        </div>
+        <button
+          type="button"
+          aria-label="Close chat"
+          onClick={toogleChat}
+          className="flex h-9 w-9 items-center justify-center rounded-lg text-2xl leading-none text-slate-400 transition hover:bg-white/10 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/60"
+        >
+          &times;
+        </button>
+      </div>
+
+      <div className="flex min-h-0 flex-1 flex-col">
         <Formik
-          initialValues={{
-            message: ''
-          }}
+          initialValues={{ message: '' }}
           validationSchema={Yup.object({
             message: Yup.string().required('Required'),
           })}
           onSubmit={onSubmit}
         >
-         {({
-           values,
-           errors,
-           touched,
-           handleChange,
-           handleBlur,
-           handleSubmit,
-           isSubmitting,
-           setFieldValue
-         }) => (
-            <Form 
-              onSubmit={handleSubmit}
-            >
-              <div 
-                className="w-100 d-flex flex-column position-relative"
-                style={{
-                  height: 'calc(100vh - 70px)'
-                }}
-              >
+          {({ values, handleBlur, handleSubmit, isSubmitting, setFieldValue }) => (
+            <Form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+              <div className="relative flex min-h-0 flex-1 flex-col">
                 {emoji ? (
-                  <div
-                    className="position-absolute"
-                    style={{ 
-                      bottom: 50 ,
-                      zIndex: 999
-                    }}
-                  >
-                    <EmojiPicker 
+                  <div className="absolute bottom-12 left-0 z-[999] max-w-full">
+                    <EmojiPicker
+                      theme="dark"
                       width={350}
                       onEmojiClick={emojiObject => {
                         const emoji = emojiObject.emoji;
@@ -289,123 +271,84 @@ function Chat({ room_id = '' }) {
                           setTimeout(() => {
                             inputRef.current.selectionStart = newCursorPosition;
                             inputRef.current.selectionEnd = newCursorPosition;
-                          }, 0); 
+                          }, 0);
                         }
                       }}
                     />
                   </div>
                 ) : null}
-                <div 
+
+                <div
                   ref={chatMessagesRef}
-                  className="flex-grow-1 chat-window overflow-y-auto"
+                  className="chat-window grow overflow-y-auto"
                   onClick={() => setEmoji(false)}
                 >
-                  <div 
-                    className="messages p-3"
-                  >
-                    {messages.map((item, index) => {
-                      const isLast = index === messages.length - 1;
-
-                      return (
-                        <Fragment key={item.id}>
-                          {item.system ? (
-                            <>
-                              {item.messages.length === 1 ? (
-                                <p style={{ fontSize: 11 }} className="text-center text-secondary mb-0">
-                                  {item.messages[0]}
-                                </p>
-                              ) : (
-                              <details>
-                                <summary>View Updates</summary>
-                                {item.messages.map((message, index) => (
-                                  <p 
-                                    key={index}
-                                    style={{ fontSize: 11 }} 
-                                    className="text-center text-secondary mb-0"
-                                  >
-                                    {message}
-                                  </p>
-                                ))}
-                              </details>
-                              )}
-                            </>
+                  <div className="messages p-4">
+                    {messages.map((item) => (
+                      <Fragment key={item.id}>
+                        {item.system ? (
+                          item.messages.length === 1 ? (
+                            <p className="mb-3 text-center text-[11px] text-slate-500">
+                              {item.messages[0]}
+                            </p>
                           ) : (
-                            <>
-                              {item.user_id === user_id ? (                            
-                                <RightMessage
-                                  item={item}
-                                  room_id={room_id}
-                                  isLast={isLast}
-                                />
-                              ) : (
-                                <LeftMessage 
-                                  item={item}
-                                  room_id={room_id}
-                                  isLast={isLast}
-                                />
-                              )}
-                            </>
-                          )}
-                        </Fragment>
-                      )
-                    })}
+                            <details className="mb-3">
+                              <summary className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] text-slate-400">
+                                View updates
+                              </summary>
+                              {item.messages.map((message, index) => (
+                                <p key={index} className="mb-0 text-center text-[11px] text-slate-500">
+                                  {message}
+                                </p>
+                              ))}
+                            </details>
+                          )
+                        ) : item.user_id === user_id ? (
+                          <RightMessage item={item} room_id={room_id} />
+                        ) : (
+                          <LeftMessage item={item} room_id={room_id} />
+                        )}
+                      </Fragment>
+                    ))}
                     <div ref={bottomRef} />
                   </div>
                 </div>
-                
-                {(!isBottom && unread !== 0) ? (
-                  <div className="position-relative w-100">
-                    <div
-                      className="position-absolute d-flex justify-content-center align-items-center w-100"
-                      style={{
-                        bottom: 30
+
+                {!isBottom && unread !== 0 ? (
+                  <div className="pointer-events-none absolute inset-x-0 bottom-3 flex justify-center">
+                    <Badge
+                      className="pointer-events-auto cursor-pointer shadow-lg"
+                      onClick={() => {
+                        setUnread(0);
+                        bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
                       }}
                     >
-                      <Badge 
-                        style={{
-                          cursor: 'pointer'
-                        }}
-                        bg="primary"
-                        onClick={() => {
-                          setUnread(0);
-                          bottomRef.current?.scrollIntoView({ 
-                            behavior: "smooth" 
-                          })
-                        }}
-                      >
-                        {`You have ${unread} new message(s)`}
-                      </Badge>
-                    </div>
+                      {unread} new {unread === 1 ? 'message' : 'messages'}
+                    </Badge>
                   </div>
                 ) : null}
+
                 {typing.length ? (
-                  <p 
-                    className="position-absolute small text-secondary" 
-                    style={{ left: 15, bottom: 30, zIndex: 999 }}
-                  >
+                  <p className="pointer-events-none absolute bottom-3 left-5 z-[999] text-xs text-slate-400 animate-[soft-blink_1.6s_ease-in-out_infinite]">
                     {formatTyping(typing)}
                   </p>
                 ) : null}
-                <div className="flex-shrink-1 position-relative">
+
+                <div className="shrink-0 border-t border-white/10 bg-white/[0.02] p-3">
                   <InputGroup>
                     <Form.Control
                       ref={inputRef}
                       name="message"
-                      placeholder="Enter your message here..."
-                      className="rounded-0 border-0"
+                      placeholder="Write a message…"
+                      className="min-w-0 grow rounded-none border-0 bg-transparent px-4 focus:ring-0"
                       autoComplete="off"
                       spellCheck="false"
                       value={values.message}
                       onChange={event => {
-                        socket.emit("on-message", {
+                        socket.emit('on-message', {
                           room_id,
                           type: 'typing',
-                          data: {
-                            room_id,
-                            system: false,
-                            username,
-                            user_id,
-                          },      
+                          data: { room_id, system: false, username, user_id },
                         });
                         setFieldValue('message', event.target.value);
                       }}
@@ -414,16 +357,17 @@ function Chat({ room_id = '' }) {
                     />
                     <Button
                       variant="light"
-                      className="rounded-0 bg-white border-0"
+                      className="shrink-0 rounded-none border-0 border-l border-white/10 bg-transparent px-4"
                       onClick={() => setEmoji(!emoji)}
+                      aria-label="Emoji"
                     >
                       😃
                     </Button>
                     <Button
-                      type="submit" 
-                      variant="danger"
-                      className="rounded-0"
+                      type="submit"
+                      className="shrink-0 rounded-none px-4"
                       disabled={isSubmitting}
+                      aria-label="Send message"
                     >
                       <IoMdSend />
                     </Button>
@@ -433,9 +377,9 @@ function Chat({ room_id = '' }) {
             </Form>
           )}
         </Formik>
-      </Offcanvas.Body>
-    </Offcanvas>
-  )
+      </div>
+    </aside>
+  );
 }
 
 export default Chat;

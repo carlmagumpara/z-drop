@@ -1,9 +1,8 @@
-import { useState } from 'react';
-import { Modal, Button, Form, InputGroup } from 'react-bootstrap';
+import { Modal, Button, Form, InputGroup } from '@/ui';
 import qrCodeModule from 'react-qr-code';
 import { resolveCjsDefault } from '@/shared/cjs-default';
-import { FaCopy } from 'react-icons/fa';
-import { useGlobalModal, MODAL_TYPES } from '../global-modal';
+import { IoQrCodeOutline, IoCopyOutline } from 'react-icons/io5';
+import { useGlobalModal } from '../global-modal';
 import { useMessage } from '../message';
 
 const RQRCode = resolveCjsDefault(qrCodeModule);
@@ -12,63 +11,61 @@ function QRCode({ url = '' }) {
   const messageApi = useMessage();
   const { show, handleClose } = useGlobalModal();
 
-  const copyToClipBoard = async text => {
+  const copyToClipBoard = async (text) => {
     try {
       await navigator.clipboard.writeText(text);
-      messageApi.success(`${text} copied!`);
-    } catch (err) {
-      messageApi.error('Failed to copy!');
+      messageApi.success('Room link copied to clipboard');
+    } catch {
+      messageApi.error('Could not copy the link');
     }
   };
 
   return (
-    <Modal
-      show={show}
-      onHide={handleClose}
-      backdrop="static"
-      keyboard={false}
-      className="lexmeet__default-modal"
-      centered
-    >
-      <Modal.Header 
-        className="border-0" 
-        closeButton
-      >
-        <Modal.Title 
-          style={{ fontSize: 15 }}
-        >
-          Scan this or copy the url to send/receive from other devices.
-        </Modal.Title>
-      </Modal.Header>
-      <Modal.Body>
-        <div
-          className="mb-3 d-flex justify-content-center align-items-center"
-        >
-          <RQRCode 
-            value={url}
-            size={200}
-          />
+    <Modal show={show} centered onHide={handleClose} className="max-w-md">
+      <Modal.Header closeButton onHide={handleClose}>
+        <div className="flex items-center gap-3">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-sky-400/20 bg-sky-400/10 text-sky-300">
+            <IoQrCodeOutline size={20} />
+          </span>
+          <div>
+            <Modal.Title>Invite people</Modal.Title>
+            <p className="mt-1 text-xs text-slate-500">
+              Scan the code or share the link to bring others into this room.
+            </p>
+          </div>
         </div>
-        <Form>
-          <Form.Group className="mb-3" >
-            <Form.Label>URL</Form.Label>
+      </Modal.Header>
+
+      <Modal.Body>
+        <div className="mx-auto mb-6 w-fit rounded-2xl bg-white p-4 shadow-lg shadow-black/30">
+          <RQRCode value={url} size={184} bgColor="#ffffff" fgColor="#0f172a" />
+        </div>
+
+        <Form onSubmit={(event) => event.preventDefault()}>
+          <Form.Group className="mb-0">
+            <Form.Label>Room link</Form.Label>
             <InputGroup>
               <Form.Control
                 value={url}
                 readOnly
+                className="min-w-0 grow rounded-none border-0 bg-transparent focus:ring-0"
+                aria-label="Room link"
               />
-              <Button 
-                variant="outline-secondary"
+              <Button
+                variant="light"
+                className="shrink-0 rounded-none border-0 border-l border-white/10 bg-white/5 px-4"
                 onClick={() => copyToClipBoard(url)}
+                title="Copy link"
+                aria-label="Copy link"
               >
-                <FaCopy />
+                <IoCopyOutline size={17} />
               </Button>
             </InputGroup>
           </Form.Group>
         </Form>
       </Modal.Body>
     </Modal>
-  )
+  );
 }
 
 export default QRCode;

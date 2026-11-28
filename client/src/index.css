@@ -1,0 +1,101 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: dark;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: #060a12;
+}
+
+/* Landing backdrop: faint coordinate grid that fades out toward the edges. */
+.grid-bg {
+  background-image:
+    linear-gradient(to right, rgba(148, 163, 184, 0.08) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(148, 163, 184, 0.08) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 35%, #000 20%, transparent 100%);
+}
+
+/* Room radar: concentric rings plus a fine coordinate grid. */
+.radar {
+  background-image:
+    radial-gradient(circle at center, rgba(56, 189, 248, 0.09) 0 1px, transparent 1px),
+    repeating-radial-gradient(circle at center, rgba(148, 163, 184, 0.11) 0 1px, transparent 1px 14%),
+    linear-gradient(to right, rgba(148, 163, 184, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(148, 163, 184, 0.05) 1px, transparent 1px);
+  background-size: 100% 100%, 100% 100%, 56px 56px, 56px 56px;
+  background-position: center;
+}
+
+.glow-orb {
+  filter: blur(90px);
+}
+
+@keyframes float-chip {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(-4deg); }
+  50% { transform: translate3d(0, -14px, 0) rotate(4deg); }
+}
+
+@keyframes pulse-ring {
+  0% { transform: scale(0.75); opacity: 0.55; }
+  70%, 100% { transform: scale(1.4); opacity: 0; }
+}
+
+@keyframes progress-sweep {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(320%); }
+}
+
+@keyframes soft-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-scale-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes avatar-pop {
+  0% { opacity: 0; transform: scale(0.6); }
+  70% { opacity: 1; transform: scale(1.06); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes radar-sweep {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes loader-orbit {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes loader-track {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(400%); }
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

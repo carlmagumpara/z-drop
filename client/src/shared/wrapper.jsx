@@ -1,12 +1,15 @@
 import { Suspense } from 'react';
-import { Outlet } from 'react-router';
+import { Outlet, useLocation } from 'react-router';
 import Loading from '@/shared/loading';
 import Navigation from './navigation';
 
 function Wrapper() {
+  // The landing page renders its own hero navbar; the room uses this one.
+  const { pathname } = useLocation();
+
   return (
     <>
-      <Navigation />
+      {pathname !== '/' ? <Navigation /> : null}
       <Suspense fallback={<Loading />}>
         <Outlet />
       </Suspense>
