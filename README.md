@@ -18,6 +18,22 @@ npm run build
 npm start          # http://localhost:4000
 ```
 
+## Sending a file
+
+1. **Open or join a room.** On the landing page click **Open a room**, or open a room link / scan its QR code. If the room is private, enter the password.
+2. **Wait for the other person.** Everyone in the room appears as an avatar on the radar. You can also use the in-room chat to coordinate.
+3. **Click the person's avatar.** This starts the peer-to-peer connection and opens the file picker. If the connection is still being negotiated, the file is queued automatically ("Waiting for the peer connection…") — you don't need to click again.
+4. **Pick a file.** Progress appears in the **Sending files** panel (click its expand button to see it). The receiver sees the same file in **Receiving files** with a progress bar, plus a **Download** button once it reaches 100%.
+5. **Send more files.** Click the same avatar and pick another file; transfers are queued one at a time over the same connection.
+
+The status chip next to the room name shows the connection state:
+
+- **Connected** — the data channel is open; transfers can start.
+- **Connecting…** — ICE negotiation is in progress. If it stays this way for 20 seconds, the UI switches to **Connection failed**, retries once, and shows an error. Configure a TURN relay (below) if this happens between different networks.
+- **Disconnected / Connection closed / Connection failed** — click the person's avatar again to establish a fresh connection.
+
+Keep both browser tabs open until the transfer completes. Files go directly between browsers — nothing is uploaded to the server.
+
 ## Deploy to Vercel
 
 `app.js` is the single server: Vercel builds it as one Express Function that serves the built client, the REST API and Socket.IO. `client/dist/**` is bundled into that Function via `vercel.json`'s `includeFiles`.
@@ -27,7 +43,7 @@ vercel            # preview deployment
 vercel --prod     # production deployment
 ```
 
-No environment variables are required: the client uses the same origin in production. Optional overrides live in `client/.env.example` and `.env.example`.
+No environment variables are required for basic operation: the client uses the same origin in production. Optional overrides (including TURN credentials for reliable cross-network transfers) live in `client/.env.example` and `.env.example`.
 
 Socket.IO is configured for the WebSocket transport only (Vercel Functions cannot use sticky long-polling sessions) and uses `/socket.io`. The server and client re-announce presence and rejoin rooms after a reconnect, which matters because Vercel closes sockets when a Function reaches its max duration.
 
