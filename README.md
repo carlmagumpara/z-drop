@@ -31,6 +31,16 @@ No environment variables are required: the client uses the same origin in produc
 
 Socket.IO is configured for the WebSocket transport only (Vercel Functions cannot use sticky long-polling sessions) and uses `/socket.io`. The server and client re-announce presence and rejoin rooms after a reconnect, which matters because Vercel closes sockets when a Function reaches its max duration.
 
+## TURN relay (required for reliable cross-network transfers)
+
+File transfers use a direct WebRTC data channel. STUN alone only works when both peers are reachable directly; peers behind symmetric NATs or restrictive firewalls otherwise stay in "Connecting…" forever. Configure a TURN relay with Vercel environment variables (see `client/.env.example`):
+
+- `VITE_TURN_CREDENTIALS_URL` — a provider endpoint returning an `iceServers` array (e.g. Metered's publishable credential API key). Recommended because credentials can be rotated.
+- Or `VITE_TURN_URLS`, `VITE_TURN_USERNAME`, `VITE_TURN_CREDENTIAL` for static credentials.
+- `VITE_STUN_URLS` optionally overrides the default Google STUN server.
+
+The client fails visibly after 20 seconds without a connection instead of showing "Connecting…" indefinitely.
+
 ## State: no Redis, no external store
 
 All state is **in-memory and per-process**: rooms, chat history (capped at 500 messages per room), the file counter, known users, and time-limited room password grants. See `store.js`.

@@ -18,7 +18,7 @@ import { useMessage } from '@/contexts/message';
 import { useGlobalModal, MODAL_TYPES } from '@/contexts/global-modal';
 import useSound from './sounds';
 import ChatProvider, { useChat } from './chat-context';
-import { iceConfig } from './config';
+import { getIceConfig } from './config';
 import Loading from '@/shared/loading';
 import { Formik } from 'formik';
 import * as Yup from 'yup';
@@ -50,6 +50,7 @@ function Room() {
   const isInitiator = useRef(false);
   const restartingIce = useRef(false);
   const retryTimer = useRef(null);
+  const connectTimeout = useRef(null);
   const activeTransfers = useRef(new Map());
   const transferQueue = useRef([]);
   const sendingQueue = useRef(false);
@@ -64,6 +65,10 @@ function Room() {
     if (retryTimer.current) {
       clearTimeout(retryTimer.current);
       retryTimer.current = null;
+    }
+    if (connectTimeout.current) {
+      clearTimeout(connectTimeout.current);
+      connectTimeout.current = null;
     }
   };
 
@@ -178,6 +183,15 @@ function Room() {
       if (state === "connected") {
         clearRetryTimer();
         restartingIce.current = false;
+      } else if (state === "connecting" && !connectTimeout.current) {
+        // Without a working TURN relay, ICE can stay in "connecting" forever.
+        connectTimeout.current = setTimeout(() => {
+          connectTimeout.current = null;
+          if (pc.current !== connection || connection.connectionState === "connected") return;
+          setStatus("failed");
+          messageApi.error("Could not reach that peer. Check the TURN configuration and try again.");
+          if (isInitiator.current) restartIce();
+        }, 20000);
       } else if (state === "disconnected") {
         // Short blips often recover by themselves; if they do not, force a
         // fresh ICE gathering instead of leaving the transfer stuck forever.
@@ -190,9 +204,11 @@ function Room() {
           }, 5000);
         }
       } else if (state === "failed") {
+        clearRetryTimer();
         failTransfers();
         if (isInitiator.current) restartIce();
       } else if (state === "closed") {
+        clearRetryTimer();
         failTransfers();
       }
     };
@@ -447,6 +463,9 @@ function Room() {
   }, []);
 
   useEffect(() => {
+    // Warm up any configured TURN credential endpoint before the first click.
+    getIceConfig();
+
     socket.on("offer", async ({ from, sdp, restart } = {}) => {
       if (!from || !sdp) return;
 
@@ -457,7 +476,7 @@ function Room() {
       } else {
         closeConnection();
         targetId.current = from;
-        connection = new RTCPeerConnection(iceConfig);
+        connection = new RTCPeerConnection(await getIceConfig());
         pc.current = connection;
         attachConnectionHandlers(connection);
         setupReceiverChannel(connection);
@@ -521,7 +540,7 @@ function Room() {
     targetUser.current = peerUserId;
     isInitiator.current = true;
 
-    const connection = new RTCPeerConnection(iceConfig);
+    const connection = new RTCPeerConnection(await getIceConfig());
     pc.current = connection;
     attachConnectionHandlers(connection);
 
