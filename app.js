@@ -126,6 +126,10 @@ function registerSockets(io) {
 
       console.log(`${username ?? user_id} joined room: ${room_id}`);
       socket.join(room_id);
+      // Socket.IO clears socket.rooms before the "disconnect" event, so keep
+      // our own record to notify peers when a socket drops unexpectedly.
+      socket.data.joinedRooms ??= new Set();
+      socket.data.joinedRooms.add(String(room_id));
       socket.data.username = username;
       socket.data.user_id = user_id;
 
@@ -144,7 +148,10 @@ function registerSockets(io) {
     });
 
     socket.on('leave-room', ({ room_id, user_id, username } = {}) => {
+      if (!room_id) return;
+
       socket.leave(room_id);
+      socket.data.joinedRooms?.delete(String(room_id));
       console.log(`${username ?? user_id} left room: ${room_id}`);
       socket.to(room_id).emit('left', { user_id, username });
       broadcastRoomUsers(io, room_id);
@@ -200,11 +207,18 @@ function registerSockets(io) {
     });
 
     socket.on('disconnect', () => {
-      const roomsLeft = [...socket.rooms].filter(room => room !== socket.id);
+      // socket.rooms is already emptied here, so use the rooms we recorded on
+      // join to notify peers and refresh the remaining users list.
+      const roomsLeft = [...(socket.data.joinedRooms ?? [])];
 
       for (const roomId of roomsLeft) {
+        socket.to(roomId).emit('left', {
+          user_id: socket.data.user_id,
+          username: socket.data.username,
+        });
         broadcastRoomUsers(io, roomId);
       }
+      socket.data.joinedRooms?.clear();
 
       for (const [userId, socketId] of onlineUsers.entries()) {
         if (socketId === socket.id) {

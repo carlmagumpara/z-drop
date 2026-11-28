@@ -65,7 +65,9 @@ function PresenceProvider({ children }) {
     };
   }, [user_id, username]);
 
-  if (!username || !user_id || !is_connected) {
+  // Keep the tree mounted across signaling reconnects: unmounting the room
+  // would also destroy its RTCPeerConnection and any in-flight file transfer.
+  if (!username || !user_id) {
     return <Loading />;
   }
 

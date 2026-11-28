@@ -45,12 +45,225 @@ function Room() {
   const fileInputRef = useRef(null);
   const channel = useRef(null);
   const targetId = useRef(null);
+  const targetUser = useRef(null);
+  const pendingIce = useRef([]);
+  const isInitiator = useRef(false);
+  const restartingIce = useRef(false);
+  const retryTimer = useRef(null);
+  const activeTransfers = useRef(new Map());
+  const transferQueue = useRef([]);
+  const sendingQueue = useRef(false);
   const [positions, setPositions] = useState([]);
   const sounds = useSound();
   const [room_status, setRoomStatus] = useState(null);
   const formikRef = useRef(null);  
   const [status, setStatus] = useState("disconnected");
   const [percentage, setPercentage] = useState(0);
+
+  const clearRetryTimer = () => {
+    if (retryTimer.current) {
+      clearTimeout(retryTimer.current);
+      retryTimer.current = null;
+    }
+  };
+
+  const failTransfers = () => {
+    for (const transfer of [...activeTransfers.current.values()]) {
+      transfer.cancel?.();
+    }
+    activeTransfers.current.clear();
+  };
+
+  const closeConnection = () => {
+    clearRetryTimer();
+
+    if (channel.current) {
+      const oldChannel = channel.current;
+      oldChannel.onopen = null;
+      oldChannel.onclose = null;
+      oldChannel.onmessage = null;
+      oldChannel.onbufferedamountlow = null;
+      try { oldChannel.close(); } catch { /* already closed */ }
+      channel.current = null;
+    }
+
+    if (pc.current) {
+      const oldPc = pc.current;
+      oldPc.ondatachannel = null;
+      oldPc.onconnectionstatechange = null;
+      oldPc.onicecandidate = null;
+      try { oldPc.close(); } catch { /* already closed */ }
+      pc.current = null;
+    }
+
+    failTransfers();
+    pendingIce.current = [];
+    targetId.current = null;
+    targetUser.current = null;
+    isInitiator.current = false;
+    restartingIce.current = false;
+    setStatus("disconnected");
+    setPercentage(0);
+  };
+
+  // ICE candidates can arrive over the signaling socket before the remote
+  // description is set. Buffer them instead of dropping them, which otherwise
+  // makes the peer connection fail intermittently.
+  const flushPendingIce = async (connection) => {
+    const pending = pendingIce.current.filter(item => item.connection === connection);
+    pendingIce.current = pendingIce.current.filter(item => item.connection !== connection);
+
+    for (const { candidate } of pending) {
+      try {
+        await connection.addIceCandidate(new RTCIceCandidate(candidate));
+      } catch (err) {
+        console.error("Error adding buffered ICE candidate", err);
+      }
+    }
+  };
+
+  const addIceCandidate = async ({ from, candidate }, connection) => {
+    if (!connection || (from && from !== targetId.current) || !candidate) return;
+
+    if (!connection.remoteDescription) {
+      pendingIce.current.push({ connection, candidate });
+      return;
+    }
+
+    try {
+      await connection.addIceCandidate(new RTCIceCandidate(candidate));
+    } catch (err) {
+      console.error("Error adding ICE candidate", err);
+    }
+  };
+
+  const restartIce = async () => {
+    const connection = pc.current;
+    if (!connection || !isInitiator.current || restartingIce.current) return;
+
+    restartingIce.current = true;
+    try {
+      connection.restartIce();
+      const offer = await connection.createOffer({ iceRestart: true });
+      await connection.setLocalDescription(offer);
+      if (pc.current === connection && targetId.current) {
+        socket.emit("offer", {
+          to: targetId.current,
+          sdp: connection.localDescription,
+          restart: true,
+        });
+      }
+    } catch (err) {
+      console.error("Could not restart ICE", err);
+      setStatus("failed");
+    } finally {
+      restartingIce.current = false;
+    }
+  };
+
+  const attachConnectionHandlers = (connection) => {
+    connection.onicecandidate = (e) => {
+      // Read the current id so candidates still reach a peer that reconnected
+      // and was given a new Socket.IO id.
+      if (e.candidate && targetId.current) {
+        socket.emit("ice-candidate", { to: targetId.current, candidate: e.candidate });
+      }
+    };
+
+    connection.onconnectionstatechange = () => {
+      if (pc.current !== connection) return;
+      const state = connection.connectionState;
+      setStatus(state);
+
+      if (state === "connected") {
+        clearRetryTimer();
+        restartingIce.current = false;
+      } else if (state === "disconnected") {
+        // Short blips often recover by themselves; if they do not, force a
+        // fresh ICE gathering instead of leaving the transfer stuck forever.
+        if (isInitiator.current && !retryTimer.current) {
+          retryTimer.current = setTimeout(() => {
+            retryTimer.current = null;
+            if (pc.current === connection && connection.connectionState === "disconnected") {
+              restartIce();
+            }
+          }, 5000);
+        }
+      } else if (state === "failed") {
+        failTransfers();
+        if (isInitiator.current) restartIce();
+      } else if (state === "closed") {
+        failTransfers();
+      }
+    };
+  };
+
+  const setupReceiverChannel = (connection) => {
+    connection.ondatachannel = (e) => {
+      const dataChannel = e.channel;
+      dataChannel.binaryType = "arraybuffer";
+      const files = {};
+      let currentFileId = null;
+
+      dataChannel.onopen = () => {
+        if (pc.current === connection) setStatus("connected");
+      };
+
+      dataChannel.onclose = () => {
+        if (pc.current !== connection) return;
+        setStatus("closed");
+        setReceiving((prev) =>
+          prev.map((item) => (item.url ? item : { ...item, failed: true }))
+        );
+      };
+
+      dataChannel.onmessage = (msg) => {
+        if (typeof msg.data === "string") {
+          if (msg.data.startsWith("META:")) {
+            try {
+              const meta = JSON.parse(msg.data.slice(5));
+              currentFileId = meta.fileId;
+              files[currentFileId] = { id: meta.fileId, name: meta.fileName, type: meta.fileType, chunks: [] };
+              setReceiving((prev) => [
+                ...prev,
+                { id: meta.fileId, name: meta.fileName, type: meta.fileType, url: null, percentage: 0 },
+              ]);
+            } catch (err) {
+              console.error("Invalid file metadata", err);
+            }
+          } else if (msg.data.startsWith("PERCENTAGE:")) {
+            // Accept both "PERCENTAGE:<id>:<value>" and the older "PERCENTAGE:<value>".
+            const [fileId, value] = msg.data.slice(11).split(":");
+            const percentage = parseInt(value ?? fileId, 10);
+            const file = files[fileId] ?? files[currentFileId];
+            if (file && !Number.isNaN(percentage)) {
+              setReceiving((prev) =>
+                prev.map((item) => (item.id === file.id ? { ...item, percentage } : item))
+              );
+              setPercentage(percentage);
+            }
+          } else if (msg.data.startsWith("EOF")) {
+            const fileId = msg.data.startsWith("EOF:") ? msg.data.slice(4) : currentFileId;
+            const file = files[fileId];
+            if (file) {
+              const url = URL.createObjectURL(new Blob(file.chunks, { type: file.type }));
+              setReceiving((prev) =>
+                prev.map((item) => (item.id === file.id ? { ...item, url, percentage: 100 } : item))
+              );
+              delete files[file.id];
+              sounds.messagenotification?.play();
+              socket.emit("files-counter", { status: "success" });
+              setPercentage(0);
+            }
+          }
+        } else {
+          // Binary chunk: always attribute it to the most recent META.
+          const file = files[currentFileId] ?? Object.values(files).slice(-1)[0];
+          if (file) file.chunks.push(msg.data);
+        }
+      };
+    };
+  };
 
   const size = 70;
   const maxTries = 500;
@@ -147,6 +360,9 @@ function Room() {
 
   useEffect(() => {
     const join = () => {
+      // Socket.IO buffers emits while disconnected; skipping here avoids a
+      // duplicate join when the "connect" handler fires for the same session.
+      if (!socket.connected) return;
       socket.emit("join-room", {
         room_id,
         username,
@@ -208,7 +424,17 @@ function Room() {
     });
     
     socket.on("room-users", (message) => {
-      setUsers([...new Set(message)]);
+      const list = [...new Set(message)];
+      setUsers(list);
+
+      // A signaling reconnect gives the peer a new socket id. Keep the target
+      // used for WebRTC signaling in sync so ICE restarts still reach them.
+      if (targetUser.current) {
+        const peer = list.find((item) => item[0] === targetUser.current);
+        if (peer && peer[2] !== targetId.current) {
+          targetId.current = peer[2];
+        }
+      }
     });
 
     return () => {
@@ -221,233 +447,226 @@ function Room() {
   }, []);
 
   useEffect(() => {
-    socket.on("offer", async ({ from, sdp }) => {
-      if(pc.current) {
-        pc.current?.close();
-        pc.current = null;
+    socket.on("offer", async ({ from, sdp, restart } = {}) => {
+      if (!from || !sdp) return;
+
+      let connection = pc.current;
+      if (restart && connection) {
+        // ICE restart: reuse the existing data channel and in-flight files.
+        targetId.current = from;
+      } else {
+        closeConnection();
+        targetId.current = from;
+        connection = new RTCPeerConnection(iceConfig);
+        pc.current = connection;
+        attachConnectionHandlers(connection);
+        setupReceiverChannel(connection);
       }
-      
-      targetId.current = from;
-      pc.current = new RTCPeerConnection(iceConfig);
 
-      pc.current.ondatachannel = (e) => {
-        const channel = e.channel;
-        const files = {}; // { fileId: { name, type, chunks: [], percentage } }
-
-        channel.onmessage = (msg) => {
-          if (typeof msg.data === "string") {
-            if (msg.data.startsWith("META:")) {
-              const meta = JSON.parse(msg.data.replace("META:", ""));
-              files[meta.fileId] = {
-                name: meta.fileName,
-                type: meta.fileType,
-                chunks: [],
-                percentage: 0,
-              };
-
-              setReceiving((prev) => [
-                ...prev,
-                {
-                  id: meta.fileId,
-                  name: meta.fileName,
-                  type: meta.fileType,
-                  url: null,
-                  percentage: 0,
-                },
-              ]);
-            } 
-            else if (msg.data.startsWith("PERCENTAGE:")) {
-              const percentage = parseInt(msg.data.replace("PERCENTAGE:", ""));
-              const current = Object.values(files).slice(-1)[0];
-              if (current) {
-                current.percentage = percentage;
-                setReceiving((prev) =>
-                  prev.map((item) =>
-                    item.id === current.id ? { ...item, percentage } : item
-                  )
-                );
-                setPercentage(percentage);
-              }
-            } 
-            else if (msg.data === "EOF") {
-              const currentId = Object.keys(files).slice(-1)[0]; // last fileId
-              const current = files[currentId];
-              if (current) {
-                const blob = new Blob(current.chunks, { type: current.type });
-                const url = URL.createObjectURL(blob);
-
-                setReceiving((prev) =>
-                  prev.map((item) =>
-                    item.id === currentId ? { ...item, url, percentage: 100 } : item
-                  )
-                );
-
-                delete files[currentId]; // clean up
-                sounds.messagenotification?.play();
-
-                socket.emit("files-counter", { status: "success" });
-                setPercentage(0);
-              }
-            }
-          } else {
-            // binary chunk
-            const current = Object.values(files).slice(-1)[0];
-            if (current) current.chunks.push(msg.data);
-          }
-        };
-      };
-
-      pc.current.onconnectionstatechange = () => {
-        console.log("Connection state:", pc.current.connectionState);
-        setStatus(pc.current.connectionState);
-      };
-
-      pc.current.onicecandidate = (e) => {
-        if (e.candidate) {
-          socket.emit("ice-candidate", { 
-            to: targetId.current, 
-            candidate: e.candidate 
-          });
-        }
-      };
-
-      await pc.current.setRemoteDescription(new RTCSessionDescription(sdp));
-      const answer = await pc.current.createAnswer();
-      await pc.current.setLocalDescription(answer);
-      socket.emit("answer", { to: from, sdp: answer });
-
-      console.log('offer');
-    });
-
-    socket.on("answer", async ({ sdp }) => {
-      await pc.current.setRemoteDescription(new RTCSessionDescription(sdp));
-
-      console.log('answer');
-    });
-
-    socket.on("ice-candidate", async ({ candidate }) => {
       try {
-        await pc.current.addIceCandidate(new RTCIceCandidate(candidate));
-
-        console.log('ice-candidate');
+        await connection.setRemoteDescription(new RTCSessionDescription(sdp));
+        await flushPendingIce(connection);
+        const answer = await connection.createAnswer();
+        await connection.setLocalDescription(answer);
+        if (pc.current === connection) {
+          socket.emit("answer", { to: from, sdp: connection.localDescription });
+        }
       } catch (err) {
-        console.error("Error adding ICE candidate", err);
+        console.error("Error handling offer", err);
+        if (pc.current === connection) setStatus("failed");
       }
     });
 
-    return () => {};
+    socket.on("answer", async ({ from, sdp } = {}) => {
+      const connection = pc.current;
+      // Ignore answers meant for a connection that has since been replaced.
+      if (!connection || !sdp || (from && from !== targetId.current)) return;
+
+      try {
+        await connection.setRemoteDescription(new RTCSessionDescription(sdp));
+        await flushPendingIce(connection);
+      } catch (err) {
+        console.error("Error handling answer", err);
+        setStatus("failed");
+      }
+    });
+
+    socket.on("ice-candidate", (data = {}) => {
+      addIceCandidate(data, pc.current);
+    });
+
+    return () => {
+      socket.off("offer");
+      socket.off("answer");
+      socket.off("ice-candidate");
+      closeConnection();
+    };
   }, []);
 
-  const startConnection = async (peerId) => {
-    if(pc.current) {
-      pc.current?.close();
-      pc.current = null;
+  const startConnection = async (peerSocketId, peerUserId) => {
+    if (!peerSocketId) return;
+
+    // Reuse a healthy connection to the same peer.
+    if (
+      pc.current &&
+      targetUser.current === peerUserId &&
+      pc.current.connectionState === "connected" &&
+      channel.current?.readyState === "open"
+    ) {
+      return;
     }
 
-    targetId.current = peerId;
-    pc.current = new RTCPeerConnection(iceConfig);
-    
-    channel.current = pc.current.createDataChannel("sendDataChannel");
-    channel.current.binaryType = 'arraybuffer';
+    closeConnection();
+    targetId.current = peerSocketId;
+    targetUser.current = peerUserId;
+    isInitiator.current = true;
 
-    channel.current.onmessage = (e) => console.log(e);
+    const connection = new RTCPeerConnection(iceConfig);
+    pc.current = connection;
+    attachConnectionHandlers(connection);
 
-    pc.current.onconnectionstatechange = () => {
-      console.log("Connection state:", pc.current.connectionState);
-      setStatus(pc.current.connectionState);
+    const dataChannel = connection.createDataChannel("sendDataChannel");
+    dataChannel.binaryType = "arraybuffer";
+    dataChannel.bufferedAmountLowThreshold = 32 * 1024;
+    channel.current = dataChannel;
+
+    dataChannel.onopen = () => {
+      if (pc.current === connection) setStatus("connected");
+    };
+    dataChannel.onclose = () => {
+      if (pc.current === connection) failTransfers();
     };
 
-    pc.current.onicecandidate = (e) => {
-      if (e.candidate) {
-        socket.emit("ice-candidate", { 
-          to: targetId.current, 
-          candidate: e.candidate 
-        });
+    try {
+      const offer = await connection.createOffer();
+      await connection.setLocalDescription(offer);
+      if (pc.current === connection) {
+        socket.emit("offer", { to: peerSocketId, sdp: connection.localDescription });
       }
-    };
-
-    const offer = await pc.current.createOffer();
-    await pc.current.setLocalDescription(offer);
-    socket.emit("offer", { to: peerId, sdp: offer });
-
-    console.log('startConnection');
+    } catch (err) {
+      console.error("Error starting connection", err);
+      setStatus("failed");
+    }
   };
 
-  const sendFile = (file) => {
+  const sendOneFile = (file) => new Promise((resolve) => {
+    const dataChannel = channel.current;
+    if (!dataChannel || dataChannel.readyState !== "open") {
+      messageApi.error("Not connected to that peer yet — wait for Connected and try again.");
+      resolve();
+      return;
+    }
+
     const metadata = {
       fileId: uuidv4(),
       fileName: file.name,
       fileType: file.type,
     };
+    const transfer = { done: false, cancel: null };
+    activeTransfers.current.set(metadata.fileId, transfer);
 
-    channel.current.send("META:" + JSON.stringify(metadata));
-
-    setSending((prevState) => [
-      ...prevState,
-      {
-        id: metadata.fileId,
-        name: metadata.fileName,
-        type: metadata.fileType,
-        url: null,
-        percentage: 0,
-      },
+    setSending((prev) => [
+      ...prev,
+      { id: metadata.fileId, name: metadata.fileName, type: metadata.fileType, url: null, percentage: 0 },
     ]);
+
+    const finish = (success) => {
+      if (transfer.done) return;
+      transfer.done = true;
+      activeTransfers.current.delete(metadata.fileId);
+      setSending((prev) =>
+        prev.map((item) =>
+          item.id === metadata.fileId
+            ? { ...item, percentage: success ? 100 : 0, failed: !success }
+            : item
+        )
+      );
+      setPercentage(0);
+      resolve();
+    };
+    transfer.cancel = () => finish(false);
 
     const chunkSize = 16 * 1024;
     let offset = 0;
     const reader = new FileReader();
 
-    const sendChunk = (chunk) => {
-      if (channel.current.bufferedAmount > 64 * 1024) {
-        // too full → wait for "bufferedamountlow"
-        channel.current.onbufferedamountlow = () => {
-          channel.current.onbufferedamountlow = null;
-          channel.current.send(chunk);
-          offset += chunkSize;
-          continueReading();
-        };
-      } else {
-        channel.current.send(chunk);
-        offset += chunkSize;
-        continueReading();
+    const reportProgress = () => {
+      const progress = Math.min(Math.round((offset / file.size) * 100), 100);
+      if (dataChannel.readyState === "open") {
+        dataChannel.send(`PERCENTAGE:${metadata.fileId}:${progress}`);
       }
-    };
-
-    const continueReading = () => {
-      const percentage = Math.min((offset / file.size) * 100, 100);
-      channel.current.send("PERCENTAGE:" + percentage);
-
-      setSending((prevState) =>
-        prevState.map((item) =>
-          item.id === metadata.fileId
-            ? { ...item, percentage: parseInt(percentage) }
-            : item
+      setSending((prev) =>
+        prev.map((item) =>
+          item.id === metadata.fileId ? { ...item, percentage: progress } : item
         )
       );
+      setPercentage(progress);
+    };
 
-      setPercentage(parseInt(percentage));
+    const readSlice = () => {
+      reader.readAsArrayBuffer(file.slice(offset, offset + chunkSize));
+    };
+
+    const writeChunk = () => {
+      if (transfer.done || dataChannel.readyState !== "open") {
+        finish(false);
+        return;
+      }
+      try {
+        dataChannel.send(reader.result);
+      } catch (err) {
+        console.error("Error sending file chunk", err);
+        finish(false);
+        return;
+      }
+      offset += reader.result.byteLength;
+      reportProgress();
 
       if (offset < file.size) {
-        readSlice(offset);
+        readSlice();
       } else {
-        channel.current.send("EOF");
-        setPercentage(0);
+        if (dataChannel.readyState === "open") {
+          dataChannel.send(`EOF:${metadata.fileId}`);
+        }
+        finish(true);
       }
     };
 
-    const readSlice = (o) => {
-      const slice = file.slice(o, o + chunkSize);
-      reader.readAsArrayBuffer(slice);
+    reader.onload = () => {
+      if (transfer.done) return;
+      if (dataChannel.bufferedAmount > 64 * 1024) {
+        // Resume once the channel drains. If it closes first, onclose marks
+        // the transfer failed so the queue never gets stuck.
+        dataChannel.onbufferedamountlow = () => {
+          dataChannel.onbufferedamountlow = null;
+          writeChunk();
+        };
+      } else {
+        writeChunk();
+      }
     };
+    reader.onerror = () => finish(false);
 
-    reader.onload = (e) => {
-      sendChunk(e.target.result);
-    };
+    try {
+      dataChannel.send(`META:${JSON.stringify(metadata)}`);
+      readSlice();
+    } catch (err) {
+      console.error("Error starting file transfer", err);
+      finish(false);
+    }
+  });
 
-    // set a low threshold for backpressure handling
-    channel.current.bufferedAmountLowThreshold = 32 * 1024;
+  const sendFile = (file) => {
+    transferQueue.current.push(file);
+    if (sendingQueue.current) return;
 
-    readSlice(0);
+    sendingQueue.current = true;
+    (async () => {
+      while (transferQueue.current.length) {
+        await sendOneFile(transferQueue.current.shift());
+      }
+      sendingQueue.current = false;
+    })();
   };
 
   const onSubmit = async (values) => {
@@ -601,7 +820,7 @@ function Room() {
                         return;
                       }
 
-                      startConnection(p.socket_id);
+                      startConnection(p.socket_id, p.user_id);
                       if (fileInputRef.current) {
                         fileInputRef.current.value = null;
                       }

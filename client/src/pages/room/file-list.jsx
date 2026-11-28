@@ -29,13 +29,15 @@ function FileList({ files = [], download = false }) {
                   <p className="truncate text-xs font-medium text-slate-200" title={item.name}>
                     {item.name}
                   </p>
-                  <p className="text-[11px] text-slate-500">{done ? 'Complete' : 'Transferring…'}</p>
+                  <p className={`text-[11px] ${item.failed ? 'text-rose-400' : 'text-slate-500'}`}>
+                    {item.failed ? 'Transfer failed' : done ? 'Complete' : 'Transferring…'}
+                  </p>
                 </div>
               </div>
 
               <div className="flex shrink-0 items-center gap-2">
-                <span className={`text-[11px] font-semibold ${done ? 'text-emerald-400' : 'text-sky-400'}`}>
-                  {item.percentage}%
+                <span className={`text-[11px] font-semibold ${item.failed ? 'text-rose-400' : done ? 'text-emerald-400' : 'text-sky-400'}`}>
+                  {item.failed ? '—' : `${item.percentage}%`}
                 </span>
                 {done && download ? (
                   <Button
