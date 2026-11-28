@@ -262,6 +262,14 @@ export function createApp() {
   };
 
   api.get('/health', health);
+  // Same-origin public IP lookup used by the client's VPN/proxy check.
+  api.get('/ip', (req, res) => {
+    const forwarded = req.headers['x-forwarded-for'];
+    const ip = (Array.isArray(forwarded) ? forwarded[0] : forwarded?.split(',')[0])?.trim()
+      || req.socket.remoteAddress
+      || '';
+    res.json({ ip });
+  });
   api.post('/create-room', (req, res) => create(req.body ?? {}, res));
   api.get('/messages/:room_id', (req, res) => history(req.params.room_id, res));
 

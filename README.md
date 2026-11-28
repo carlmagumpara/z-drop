@@ -34,6 +34,10 @@ The status chip next to the room name shows the connection state:
 
 Keep both browser tabs open until the transfer completes. Files go directly between browsers — nothing is uploaded to the server.
 
+### VPN / proxy alert
+
+The app compares the public IP used for HTTP (`/api/ip`) with the public IP WebRTC reveals via STUN. If they differ, a banner warns that a VPN or proxy is likely active and asks the user to disable it and reload — VPNs commonly break the direct peer-to-peer connection. The check is a heuristic: it only compares public IPv4 addresses and cannot detect a VPN that also routes WebRTC traffic, so it may not fire in every case.
+
 ## Deploy to Vercel
 
 `app.js` is the single server: Vercel builds it as one Express Function that serves the built client, the REST API and Socket.IO. `client/dist/**` is bundled into that Function via `vercel.json`'s `includeFiles`.
