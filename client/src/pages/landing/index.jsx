@@ -13,7 +13,6 @@ import {
   IoWifi,
   IoGlobeOutline,
   IoCheckmark,
-  IoSend,
   IoLink,
   IoSparkles,
   IoServer,
@@ -23,6 +22,7 @@ import { resolveCjsDefault } from '@/shared/cjs-default';
 import { usePresence } from '@/contexts/presence';
 import { useGlobalModal, MODAL_TYPES } from '@/contexts/global-modal';
 import { createRoom } from '@/shared/api';
+import logoUrl from '@/assets/logo.png';
 
 const imageModules = import.meta.glob('@/assets/formats/*.{png,jpg,jpeg,gif,svg}', {
   eager: true,
@@ -103,8 +103,8 @@ const features = [
 function Logo({ compact = false }) {
   return (
     <a href="/" className="group flex items-center gap-2.5" aria-label="zDrop home">
-      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-linear-to-br from-sky-400 to-violet-500 text-white shadow-lg shadow-sky-500/25 transition-transform group-hover:scale-105">
-        <IoSend size={18} />
+      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-linear-to-br from-sky-400 to-violet-500 shadow-lg shadow-sky-500/25 transition-transform group-hover:scale-105">
+        <img src={logoUrl} alt="" className="h-6 w-6 invert" />
       </span>
       {!compact && (
         <span className="text-xl font-bold tracking-tight text-white">
